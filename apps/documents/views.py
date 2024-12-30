@@ -1,11 +1,11 @@
 from django.shortcuts import render
 
 # Create your views here.
-from  apps.documents.models import Field,DocumentGroup,Document,Recipient,DocumentGroupRecipient
+from  apps.documents.models import Field,DocumentGroup,Document,Recipient,DocumentGroupRecipient,DocumentField
 
 from rest_framework import viewsets
 from rest_framework import generics
-from apps.documents.serializers import DocumentsFieldsSerializer,DocumentGroupSerializer,DocumentsRecipientSerializer,RecipientSerializer,ResponseDocumentGroupSerializer,DocumentFieldBulkSerializer,SingleDocumentSerializerResponse
+from apps.documents.serializers import DocumentsFieldsSerializer,DocumentGroupSerializer,DocumentsRecipientSerializer,RecipientSerializer,ResponseDocumentGroupSerializer,CreateDocumentFieldBulkSerializer,SingleDocumentSerializerResponse,UpdateDocumentsFieldsSerilalizer
 from django.db.models import Q
 from typing import List
 from rest_framework.response import Response
@@ -24,9 +24,7 @@ class DocumentFieldAPI(viewsets.ModelViewSet):
         user = self.request.user
         serializer.save(created_by=user, updated_by=user)
         
-        
-
-
+    
 class DocumentGroupViewSet(viewsets.ModelViewSet):
     queryset = DocumentGroup.objects.all()
     serializer_class = DocumentGroupSerializer
@@ -73,11 +71,51 @@ class GetRecipientsDocuments(APIView):
         
 class DocumentFieldCreateAPIView(APIView):
     def post(self, request, *args, **kwargs):
-        serializer = DocumentFieldBulkSerializer(data=request.data, context={'request': request})
+        serializer = CreateDocumentFieldBulkSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response({"message": "Document fields created successfully"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+    def put(self, request, *args, **kwargs):
+        field_id = request.query_params.get('field_id')
+        document_id = request.query_params.get('document_id')  #
+        recipient_id = request.query_params.get('recipient_id') 
+        try:
+            document_field = DocumentField.objects.get(id=field_id,document=document_id,recipient=recipient_id)
+        except DocumentField.DoesNotExist:
+            return Response({"message": "Document field not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = UpdateDocumentsFieldsSerilalizer(document_field, data=request.data, context={'request': request})
+    
+        if serializer.is_valid():
+            try:
+                serializer.save()
+                return Response({"message": "Document field updated successfully"}, status=status.HTTP_200_OK)
+            except Exception as e:
+               
+                return Response({"message": "An error occurred while updating the document field."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+    def delete(self, request, *args, **kwargs):
+        field_id = request.query_params.get('field_id')
+        document_id = request.query_params.get('document_id')  # document_id from query params
+        recipient_id = request.query_params.get('recipient_id')
+
+        try:
+            document_field = DocumentField.objects.get(id=field_id, document=document_id, recipient=recipient_id)
+        except DocumentField.DoesNotExist:
+            return Response({"message": "Document field not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            # Delete the document field
+            document_field.delete()
+            return Response({"message": "Document field deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            return Response({"message": "An error occurred while deleting the document field."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     
     
     

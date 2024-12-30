@@ -154,7 +154,7 @@ class DocumentFieldSerializer(serializers.ModelSerializer):
         
 
 
-class DocumentFieldBulkSerializer(serializers.Serializer):
+class CreateDocumentFieldBulkSerializer(serializers.Serializer):
     document_id = serializers.IntegerField()
     fields = DocumentFieldSerializer(many=True)
     
@@ -190,8 +190,17 @@ class DocumentFieldBulkSerializer(serializers.Serializer):
 
         return DocumentField.objects.bulk_create(document_fields)
 
-      
-    
+class UpdateDocumentsFieldsSerilalizer(serializers.ModelSerializer):
+    class Meta:
+        model = DocumentField
+        fields = "__all__"
+        extra_kwargs = {
+            'created_by': {'read_only': True},
+            'updated_by': {'read_only': True},
+            'created_at': {'read_only': True},
+            'updated_at': {'read_only': True},
+        }
+        
     
     
 class ResponseDocumentGroupSerializer(serializers.ModelSerializer):

@@ -55,6 +55,8 @@ class DocumentsAssignRecipientAPI(viewsets.ModelViewSet):
             return Response(context, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
 
 
 class GetRecipientsDocuments(APIView):
@@ -68,6 +70,24 @@ class GetRecipientsDocuments(APIView):
             raise NotFound(detail="DocumentGroup not found")
         
         
+        
+class RemoveRecipientsAPI(APIView):
+    def delete(self, request, *args, **kwargs):
+        document_group = request.query_params.get('document_group')
+        recipient_id = request.query_params.get('recipient_id')
+
+        try:
+            instance = DocumentGroupRecipient.objects.get(document_group=document_group,recipient=recipient_id)
+        except DocumentField.DoesNotExist:
+            return Response({"message": "Recipient field not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            # Delete the document field
+            instance.delete()
+            return Response({"message": "Recipient field deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            return Response({"message": "An error occurred while deleting the Recipient field."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         
 class DocumentFieldCreateAPIView(APIView):
     def post(self, request, *args, **kwargs):

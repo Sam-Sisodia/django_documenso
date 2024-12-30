@@ -5,9 +5,14 @@ from rest_framework.routers import DefaultRouter
 router = DefaultRouter()
 router.register("add-fields", views.DocumentFieldAPI, basename="add-fields")
 router.register("upload-documents", views.DocumentGroupViewSet, basename="upload-documents")
+router.register("assign-recipients", views.DocumentsAssignRecipientAPI, basename="assign-recipients")
+
+
 
 
 urlpatterns = [
+    path('get-document/<int:document_group_id>/', views.GetRecipientsDocuments.as_view(), name='get_recipients_documents'),
+    path('add-document-fields/', views.DocumentFieldCreateAPIView.as_view(), name='add-document-fields'),
     # path('', views.LoginView.as_view(), name='login'),
     # path('register/', views.RegisterView.as_view(), name='register'),
 ]+ router.urls

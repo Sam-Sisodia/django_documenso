@@ -8,7 +8,7 @@ from apps.utils.models import TimeStampModel
 from apps.documents.enum import SigningType,DocumentStatus ,DocumentType,RecipientRole
 from django.utils.timezone import now
 
-class DocumentField(TimeStampModel):
+class Field(TimeStampModel):
     name = models.CharField(max_length=30)  
 
     def __str__(self):
@@ -23,9 +23,20 @@ class Document(TimeStampModel):
     class Meta:
         db_table = 'documentsfields'
     
+    
+    
+class DocumentGroupRecipient(TimeStampModel):
+    document_group = models.ForeignKey('DocumentGroup', on_delete=models.CASCADE, related_name='group_recipients')
+    recipient = models.ForeignKey('Recipient', on_delete=models.CASCADE, related_name='recipient_groups')
+    note = models.TextField(null=True, blank=True)  
+    order = models.IntegerField(default=0)  
+
+    class Meta:
+        db_table = 'document_group_recipient'
+        unique_together = ('document_group', 'recipient')  # Ensure no duplicate entries
+
 class DocumentGroup(TimeStampModel):
     title = models.CharField(max_length=255)
-   
     status = models.CharField(  max_length=50,  choices=DocumentStatus.choices(), default=DocumentStatus.DRAFT )
     signing_type = models.CharField(max_length=50,     choices=SigningType.choices(),
         default=SigningType.PARALLEL
@@ -39,27 +50,23 @@ class DocumentGroup(TimeStampModel):
         default=DocumentType.DOCUMENT
     )
     documents = models.ManyToManyField( 'Document', related_name='groups_documents',   blank=True  )
+ 
+    orderrecipients = models.ManyToManyField(
+        'Recipient', through='DocumentGroupRecipient', related_name='document_groups'
+    ) 
+    
     def __str__(self):
         return self.title
 
     class Meta:
-        db_table = 'documents_group'  # To match the original table name
+        db_table = 'documents_group'  
     
-
-  
 
 class Recipient(TimeStampModel):
     name = models.CharField(max_length=255)
     email = models.EmailField()
     role = models.CharField( max_length=50,  choices=RecipientRole.choices(),     default=RecipientRole.SIGNER  )
-    created_at = models.DateTimeField(default=now)
-    order = models.IntegerField(default=0)
-    recipient_documents = models.ManyToManyField(
-        DocumentGroup, 
-        related_name='recipients_groups_documents', 
-        blank=True,
-        through='DocumentsRecipient'  # Use the correct model name here
-    )
+  
     
     class Meta:
         db_table = 'recipients'
@@ -72,19 +79,22 @@ class Recipient(TimeStampModel):
     
     
     
-class DocumentsRecipient(TimeStampModel):
-    note = models.TextField(null=True)
-    recipient = models.ForeignKey(Recipient, on_delete=models.CASCADE)
-    document_group = models.ForeignKey(DocumentGroup, on_delete=models.CASCADE)
+class DocumentField(TimeStampModel):
+    document = models.ForeignKey('Document', on_delete=models.CASCADE, related_name='documentfield_document',null=True)
+    field = models.ForeignKey('Field', on_delete=models.CASCADE, related_name='documentfield_fields',null=True)
+    recipient = models.ForeignKey('Recipient',on_delete=models.CASCADE, related_name='documentfield_recipient',null=True)
+    value = models.CharField(max_length=255, null=True, blank=True)
+    positionX = models.CharField(max_length=255, null=True, blank=True)
+    positionY = models.CharField(max_length=255, null=True, blank=True)
+    width = models.CharField(max_length=255, null=True, blank=True)
+    height = models.CharField(max_length=255, null=True, blank=True)
+    page_no = models.CharField(max_length=255, null=True, blank=True)
+
     class Meta:
-        db_table = 'documents_recipient'  # To match your naming convention
-        unique_together = ('recipient', 'document_group')  # Ensures a recipient can only be associated with a group once
+        db_table = 'document_field'
 
     def __str__(self):
-        return f"{self.recipient.name} - {self.document_group.title}"
-     
-     
-    
+        return f"Field {self.field.name} on Page {self.page_no} of Document {self.document.title}"
 
 
 

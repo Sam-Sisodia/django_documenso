@@ -87,6 +87,5 @@ class SingleDocumentAPI(APIView):
             document_group = Document.objects.get(id=document_id)
             serializer = SingleDocumentSerializerResponse(document_group)     
             return Response(serializer.data)
-
         except DocumentGroup.DoesNotExist:
             raise NotFound(detail="DocumentGroup not found")

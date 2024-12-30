@@ -5,7 +5,7 @@ from  apps.documents.models import Field,DocumentGroup,Document,Recipient,Docume
 
 from rest_framework import viewsets
 from rest_framework import generics
-from apps.documents.serializers import DocumentsFieldsSerializer,DocumentGroupSerializer,DocumentsRecipientSerializer,RecipientSerializer,ResponseDocumentGroupSerializer,DocumentFieldBulkSerializer
+from apps.documents.serializers import DocumentsFieldsSerializer,DocumentGroupSerializer,DocumentsRecipientSerializer,RecipientSerializer,ResponseDocumentGroupSerializer,DocumentFieldBulkSerializer,SingleDocumentSerializerResponse
 from django.db.models import Q
 from typing import List
 from rest_framework.response import Response
@@ -78,3 +78,15 @@ class DocumentFieldCreateAPIView(APIView):
             serializer.save()
             return Response({"message": "Document fields created successfully"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+    
+class SingleDocumentAPI(APIView):
+    def get(self, request, document_id, *args, **kwargs):
+        try:
+            document_group = Document.objects.get(id=document_id)
+            serializer = SingleDocumentSerializerResponse(document_group)     
+            return Response(serializer.data)
+
+        except DocumentGroup.DoesNotExist:
+            raise NotFound(detail="DocumentGroup not found")

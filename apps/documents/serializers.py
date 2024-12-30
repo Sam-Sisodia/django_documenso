@@ -173,7 +173,6 @@ class DocumentFieldBulkSerializer(serializers.Serializer):
                 
                 raise ValidationError("Recipient with this document and field id is already exits")
             
-            
             document_field = DocumentField(
                 document_id=document_id,
                 recipient_id=field_data['recipient']['id'],
@@ -195,9 +194,6 @@ class DocumentFieldBulkSerializer(serializers.Serializer):
     
     
     
-    
-
-    
 class ResponseDocumentGroupSerializer(serializers.ModelSerializer):
     documents = DocumentSerializer(many=True, read_only=True) 
     class Meta:
@@ -205,6 +201,20 @@ class ResponseDocumentGroupSerializer(serializers.ModelSerializer):
         fields = ['title','documents', 'status', 'note',  'signing_type', 'subject', 'message','document_type']
        
        
+   
+   
+class SingleDoc(serializers.ModelSerializer):
+
+    class Meta:
+        model = DocumentGroup
+        fields = ['title', 'status', 'note',  'signing_type', 'subject', 'message','document_type']
+           
+       
+class SingleDocumentSerializerResponse(serializers.ModelSerializer):
+    groups_documents = SingleDoc(many=True)
+    class Meta:
+        model = Document
+        fields = ['id','title','file_data',"groups_documents"]
        
        
        

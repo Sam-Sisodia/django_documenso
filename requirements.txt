@@ -2,4 +2,9 @@ Django==5.1.4
 djangorestframework==3.15.2
 python_dotenv==1.0.1
 djangorestframework-simplejwt==5.3.1
- 
+drf-yasg==1.21.8
+django-rest-swagger==2.2.0
+
+
+#   "rest_framework_swagger",
+#     "drf_yasg",

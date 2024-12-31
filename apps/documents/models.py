@@ -45,7 +45,7 @@ class DocumentGroup(TimeStampModel):
     auto_reminder = models.BooleanField(default=False,  help_text="Whether to automatically send reminders (True/False)." )
     
     documents = models.ManyToManyField( 'Document', related_name='groups_documents',   blank=True  )
-    # recipients = models.ManyToManyField('Recipient',  related_name='document_groups', blank=True ) 
+
     
     def __str__(self):
         return self.title

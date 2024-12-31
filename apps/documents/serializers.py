@@ -1,20 +1,50 @@
 from rest_framework import serializers
 from apps.documents.models import Field ,Document,DocumentGroup,Recipient,DocumentField,DocumentSharedLink # Import the DocumentField model
 from rest_framework.exceptions import ValidationError
-class DocumentsFieldsSerializer(serializers.ModelSerializer):
+class FieldsSerializer(serializers.ModelSerializer):
     name = serializers.CharField(required=True)  # Define the 'name' field
-    
     class Meta:
         model = Field  
         fields = ["id", "name"]  
 
 
+
+
+
+class Gropupdocumentfieldsresponse(serializers.ModelSerializer):
+    class Meta:
+        model = DocumentField
+        fields = ['id', 'document',"value","positionX","positionY","width","height","page_no","field"] 
+        
+        
+
+        
 class DocumentSerializer(serializers.ModelSerializer):
+    documentfield_document = Gropupdocumentfieldsresponse(many=True, read_only=True) 
     class Meta:
         model = Document
-        fields = ['id', 'title', 'file_data']
+        fields = ['id', 'title',"file_data",'documentfield_document']
 
 
+
+
+        
+class RecipientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recipient
+        fields = ['id','name', 'email', 'role', 'order','note','auth_type',]
+        
+       
+
+class ResponseDocumentGroupSerializer(serializers.ModelSerializer):
+    documents = DocumentSerializer(many=True, read_only=True) 
+    group_recipients = RecipientSerializer(many=True,read_only=True) 
+    class Meta:
+        model = DocumentGroup
+        fields = ['title','documents', 'status', 'note',  'signing_type', 'subject', 'message','document_type',"group_recipients"]
+       
+       
+       
 class DocumentGroupSerializer(serializers.ModelSerializer):
     upload_documents = serializers.ListField(
         child=serializers.FileField(), required=False, write_only=True
@@ -66,14 +96,7 @@ class DocumentGroupSerializer(serializers.ModelSerializer):
 
         return document_group
 
-class RecipientSerializer(serializers.ModelSerializer):
-  
-    class Meta:
-        model = Recipient
-        fields = ['id','name', 'email', 'role', 'order','note','auth_type']
-        
        
-
 
 
 class DocumentsRecipientSerializer(serializers.ModelSerializer):
@@ -217,12 +240,7 @@ class UpdateDocumentsFieldsSerilalizer(serializers.ModelSerializer):
         
     
     
-class ResponseDocumentGroupSerializer(serializers.ModelSerializer):
-    documents = DocumentSerializer(many=True, read_only=True) 
-    class Meta:
-        model = DocumentGroup
-        fields = ['title','documents', 'status', 'note',  'signing_type', 'subject', 'message','document_type']
-       
+
        
    
 

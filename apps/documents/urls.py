@@ -11,7 +11,7 @@ router.register("assign-recipients", views.DocumentsAssignRecipientAPI, basename
 
 
 urlpatterns = [
-    path('get-document/<int:document_group_id>/', views.GetRecipientsDocuments.as_view(), name='get_recipients_documents'),
+    path('get-group-documents/<int:document_group_id>/', views.GetRecipientsDocuments.as_view(), name='get_recipients_documents'),
     path('get-single-document/<int:document_id>/', views.SingleDocumentAPI.as_view(), name='get-single-document'),
     path('add-document-fields/', views.DocumentFieldCreateAPIView.as_view(), name='add-document-fields'),
     path('remove-recipient/<int:grp_id>/<int:rec_id>/', views.RemoveRecipientsAPI.as_view(), name='remove-recipient'),

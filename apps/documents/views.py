@@ -5,7 +5,7 @@ from  apps.documents.models import Field,DocumentGroup,Document,Recipient,Docume
 
 from rest_framework import viewsets
 from rest_framework import generics
-from apps.documents.serializers import DocumentsFieldsSerializer,DocumentGroupSerializer,DocumentsRecipientSerializer,RecipientSerializer,ResponseDocumentGroupSerializer,CreateDocumentFieldBulkSerializer,SingleDocumentSerializerResponse,UpdateDocumentsFieldsSerilalizer
+from apps.documents.serializers import FieldsSerializer,DocumentGroupSerializer,DocumentsRecipientSerializer,RecipientSerializer,ResponseDocumentGroupSerializer,CreateDocumentFieldBulkSerializer,SingleDocumentSerializerResponse,UpdateDocumentsFieldsSerilalizer
 from django.db.models import Q
 from typing import List
 from rest_framework.response import Response
@@ -14,7 +14,7 @@ from rest_framework.views import APIView
 
 from rest_framework.exceptions import NotFound
 class DocumentFieldAPI(viewsets.ModelViewSet):
-    serializer_class = DocumentsFieldsSerializer
+    serializer_class = FieldsSerializer
     http_method_names: List[str] = ["get", "post"]
 
     def get_queryset(self):
@@ -92,10 +92,7 @@ class DocumentsAssignRecipientAPI(viewsets.ModelViewSet):
                     )
            
 
-        
-    
-    
-    
+
         
 class RemoveRecipientsAPI(APIView):
     def delete(self, request, grp_id, rec_id, *args, **kwargs):
@@ -124,8 +121,9 @@ class DocumentFieldCreateAPIView(APIView):
         field_id = request.query_params.get('field_id')
         document_id = request.query_params.get('document_id')  #
         recipient_id = request.query_params.get('recipient_id') 
+        document_group = request.query_params.get('document_group_id')
         try:
-            document_field = DocumentField.objects.get(id=field_id,document=document_id,recipient=recipient_id)
+            document_field = DocumentField.objects.get(id=field_id, document=document_id, recipient=recipient_id,document_group=document_group)
         except DocumentField.DoesNotExist:
             return Response({"message": "Document field not found."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -142,12 +140,13 @@ class DocumentFieldCreateAPIView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
     def delete(self, request, *args, **kwargs):
+        document_group = request.query_params.get('document_group_id')
         field_id = request.query_params.get('field_id')
         document_id = request.query_params.get('document_id')  # document_id from query params
         recipient_id = request.query_params.get('recipient_id')
 
         try:
-            document_field = DocumentField.objects.get(id=field_id, document=document_id, recipient=recipient_id)
+            document_field = DocumentField.objects.get(id=field_id, document=document_id, recipient=recipient_id,document_group=document_group)
         except DocumentField.DoesNotExist:
             return Response({"message": "Document field not found."}, status=status.HTTP_404_NOT_FOUND)
 

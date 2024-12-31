@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apps.documents.models import Field ,Document,DocumentGroup,Recipient,DocumentField,DocumentGroupRecipient # Import the DocumentField model
+from apps.documents.models import Field ,Document,DocumentGroup,Recipient,DocumentField,DocumentGroupRecipient,DocumentSharedLink # Import the DocumentField model
 from rest_framework.exceptions import ValidationError
 class DocumentsFieldsSerializer(serializers.ModelSerializer):
     name = serializers.CharField(required=True)  # Define the 'name' field
@@ -157,8 +157,6 @@ class DocumentFieldSerializer(serializers.ModelSerializer):
 class CreateDocumentFieldBulkSerializer(serializers.Serializer):
     document_id = serializers.IntegerField()
     fields = DocumentFieldSerializer(many=True)
-    
-
     def create(self, validated_data):
         document_id = validated_data['document_id']
         fields_data = validated_data['fields']
@@ -169,7 +167,8 @@ class CreateDocumentFieldBulkSerializer(serializers.Serializer):
             if DocumentField.objects.filter(document_id=document_id,
                                             recipient_id=field_data['recipient']['id'],
                                             field_id=field_data['field']['id'],
-                                           positionX=field_data['positionX'],positionY=field_data['positionY']).exists():
+                                           positionX=field_data['positionX'],
+                                           positionY=field_data['positionY']).exists():
                 
                 raise ValidationError("Recipient with this document and field id is already exits")
             
@@ -211,21 +210,56 @@ class ResponseDocumentGroupSerializer(serializers.ModelSerializer):
        
        
    
-   
-class SingleDoc(serializers.ModelSerializer):
 
+
+####################################
+class DocumentRecipients(serializers.ModelSerializer):
+    class Meta:
+        model = Recipient
+        fields = ['id','name', 'email', 'role']
+   
+    
+
+class SingleDoc(serializers.ModelSerializer):
+    orderrecipients = DocumentRecipients(many=True)
     class Meta:
         model = DocumentGroup
-        fields = ['title', 'status', 'note',  'signing_type', 'subject', 'message','document_type']
+        fields = ['title', 'status', 'note',  'signing_type', 'subject', 'message','document_type','orderrecipients']
            
-       
+    
+    
+    
+class FieldData(serializers.ModelSerializer):
+  class Meta:
+        model = Field
+        fields = ['id', 'name',]
+           
+    
+    
+    
+class DocumentFieldSerializer(serializers.ModelSerializer):
+    field = FieldData(read_only=True) 
+    class Meta:
+        model = DocumentField
+        fields = ['id', 'document',"value","positionX","positionY","width","height","page_no","field"] 
+
 class SingleDocumentSerializerResponse(serializers.ModelSerializer):
+    documentfield_document = DocumentFieldSerializer(many=True, read_only=True)  
     groups_documents = SingleDoc(many=True)
     class Meta:
         model = Document
-        fields = ['id','title','file_data',"groups_documents"]
-       
-       
-       
-       
-       
+        fields = ['id', 'title', 'file_data', 'documentfield_document',"groups_documents"]
+
+# groups_documents = SingleDoc(many=True)
+# document
+# documentfield_document
+# field
+# documentfield_fields
+     
+################################
+
+  
+class DocumentSharedLinkSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DocumentSharedLink
+        fields = '__all__'

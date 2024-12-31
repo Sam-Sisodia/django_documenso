@@ -100,19 +100,28 @@ class DocumentField(TimeStampModel):
 
 
 
+class DocumentSharedLink(TimeStampModel):
+    document = models.ForeignKey(
+        'Document',
+        on_delete=models.CASCADE,
+        related_name='shared_links',
+        null=True,
+        blank=True
+    )
+    recipient = models.ForeignKey(
+        'Recipient',
+        on_delete=models.CASCADE,
+        related_name='recipient_links',
+        null=True,
+        blank=True
+    )
+    token = models.CharField(max_length=255, null=True, blank=True)
+    created_at = models.DateTimeField(default=now)
+
+    def __str__(self):
+        return f"Shared Link: {self.token}"
 
 
 
 
 
-
-
-
-   
-#     # Relationships
-#     # user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='document_groups')
-#     # documentsharedlinks = models.ManyToManyField('DocumentSharedLink', related_name='document_groups', blank=True)
-#     # documnet_fields = models.ManyToManyField('CheckFields', related_name='document_groups', blank=True)
-#     # recipients = models.ManyToManyField('Recipient', through='DocumentRecipient', related_name='document_groups')
-#     # signing_document = models.ForeignKey('DocumentSigningProcess', on_delete=models.CASCADE, related_name='document_groups', null=True)
-  

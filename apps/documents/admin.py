@@ -1,5 +1,5 @@
 from django.contrib import admin
-from  apps.documents.models import Field,DocumentGroup,Document,Recipient,DocumentField,DocumentGroupRecipient
+from  apps.documents.models import Field,DocumentGroup,Document,Recipient,DocumentField,DocumentGroupRecipient,DocumentSharedLink
 
 # Register your models here.
 
@@ -86,12 +86,26 @@ class DocumentFieldadmin(admin.ModelAdmin):
                     "positionY",
                     "width",
                     "height",
-                    "page_no",
-                                        
+                    "page_no",                 
                     "created_by",
+                
                     ]
 
 
 
 
+@admin.register(DocumentSharedLink)
+class DocumentSharedLinkadmin(admin.ModelAdmin):
+    list_display = ["id",
+                    "document",
+                    "recipient",
+                    "token",
+                    "created_at",                
+                    "created_by",
+                    ]
+
+
     
+    
+    
+ 

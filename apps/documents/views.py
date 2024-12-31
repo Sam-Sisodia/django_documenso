@@ -59,15 +59,7 @@ class DocumentsAssignRecipientAPI(viewsets.ModelViewSet):
     
 
 
-class GetRecipientsDocuments(APIView):
-    def get(self, request, document_group_id, *args, **kwargs):
-        try:
-            document_group = DocumentGroup.objects.get(id=document_group_id)
-            serializer = ResponseDocumentGroupSerializer(document_group)     
-            return Response(serializer.data)
 
-        except DocumentGroup.DoesNotExist:
-            raise NotFound(detail="DocumentGroup not found")
         
         
         
@@ -138,7 +130,19 @@ class DocumentFieldCreateAPIView(APIView):
 
     
     
-    
+class GetRecipientsDocuments(APIView):
+    def get(self, request, document_group_id, *args, **kwargs):
+        try:
+            document_group = DocumentGroup.objects.get(id=document_group_id)
+            serializer = ResponseDocumentGroupSerializer(document_group)     
+            return Response(serializer.data)
+
+        except DocumentGroup.DoesNotExist:
+            raise NotFound(detail="DocumentGroup not found")
+        
+        
+        
+        
 class SingleDocumentAPI(APIView):
     def get(self, request, document_id, *args, **kwargs):
         try:

@@ -57,29 +57,62 @@ class DocumentsAssignRecipientAPI(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     
+    def put(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        document_group_id = request.data.get('document_group_id')
+        recipients_data = request.data.get('recipients', [])
+        if not document_group_id:
+            return Response({"error": "document_group_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        existing_recipients = Recipient.objects.filter(document_group_id=document_group_id)
 
+        for recipient_data in recipients_data:
+            recipient_id = recipient_data.get('id')
 
+            if recipient_id:  # Update existing recipient
+                try:
+                    recipient_instance = existing_recipients.get(id=recipient_id)
+                    recipient_serializer = RecipientSerializer(
+                        instance=recipient_instance,
+                        data=recipient_data,
+                        partial=partial
+                    )
+                    recipient_serializer.is_valid(raise_exception=True)
+                    recipient_serializer.save()
+                    return Response(
+                            {
+                                "recipients": recipient_serializer.data,
+                                "message": "Recipients updated successfully."
+                            },
+                            status=status.HTTP_200_OK
+                        )
+
+                except Recipient.DoesNotExist:
+                    return Response(
+                        {"error": f"Recipient with ID {recipient_id} does not exist."},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+           
 
         
-        
+    
+    
+    
+
+
+
         
 class RemoveRecipientsAPI(APIView):
-    pass
-    # def delete(self, request, *args, **kwargs):
-    #     document_group = request.query_params.get('document_group')
-    #     recipient_id = request.query_params.get('recipient_id')
+    def delete(self, request, grp_id, rec_id, *args, **kwargs):
+        print("Received DELETE request for group ID:", grp_id, "and recipient ID:", rec_id)
 
-    #     try:
-    #         instance = DocumentGroupRecipient.objects.get(document_group=document_group,recipient=recipient_id)
-    #     except DocumentField.DoesNotExist:
-    #         return Response({"message": "Recipient field not found."}, status=status.HTTP_404_NOT_FOUND)
+        # Example logic: Delete the recipient
+        try:
+            recipient = Recipient.objects.get(id=rec_id, document_group_id=grp_id)
+            recipient.delete()
+            return Response({"message": f"Recipient {rec_id} in group {grp_id} deleted successfully."}, status=200)
+        except Recipient.DoesNotExist:
+            return Response({"error": "Recipient not found."}, status=404)
 
-    #     try:
-    #         # Delete the document field
-    #         instance.delete()
-    #         return Response({"message": "Recipient field deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
-    #     except Exception as e:
-    #         return Response({"message": "An error occurred while deleting the Recipient field."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         
 class DocumentFieldCreateAPIView(APIView):

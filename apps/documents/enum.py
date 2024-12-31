@@ -46,6 +46,31 @@ class DocumentType(str, Enum):
  
  
  
+class DocumentValidity(str, Enum):
+    NO_EXPIRY = "NO_EXPIRY"
+    DATE = "Date"
+    
+
+    @classmethod
+    def choices(cls):
+        return tuple((i.name, i.value) for i in cls)
+
+
+
+class RecipientAuthType(str,Enum):
+    SMS = "SMS"
+    EMAIL = "EMAIL"
+    OTP = "OTP"
+    
+    
+    @classmethod
+    def choices(cls):
+        return tuple((i.name, i.value) for i in cls)
+
+    
+    
+    
+    
 
 # export const FieldType= {
 #     "SIGNATURE":"SIGNATURE",

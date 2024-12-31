@@ -1,5 +1,5 @@
 from django.contrib import admin
-from  apps.documents.models import Field,DocumentGroup,Document,Recipient,DocumentField,DocumentGroupRecipient,DocumentSharedLink
+from  apps.documents.models import Field,DocumentGroup,Document,Recipient,DocumentField,DocumentSharedLink
 
 # Register your models here.
 
@@ -15,7 +15,7 @@ class Documentadmin(admin.ModelAdmin):
 
 @admin.register(Field)
 class Fieldadmin(admin.ModelAdmin):
-    list_display = ["id", "name","created_by","updated_by","created_by_date","updated_by_date"]
+    list_display = ["id", "name"]
     search_fields =["name"]
 
 
@@ -31,16 +31,19 @@ class DocumentGroup(admin.ModelAdmin):
                 "document_type",
                 "get_documents",
                 "get_recipients",
+                "validity",
+                "days_to_complete",
+                "reminder_duration",
+                "auto_reminder",
                 "created_by",
-
                 ]
     search_fields =["title"]
-    
     def get_documents(self, obj):
         return ", ".join([doc.title for doc in obj.documents.all()])
 
     def get_recipients(self,obj):
-        return ", ".join([rec.email for rec in obj.recipients.all()])
+        recipient = Recipient.objects.filter(document_group=obj)
+        return ", ".join([rec.email for rec in recipient])
        
 
 
@@ -53,24 +56,12 @@ class Recipientadmin(admin.ModelAdmin):
                     "name",
                     "email",
                     "role",
-                    
-                    "created_by",
-                    ]
-    search_fields =["email"]
-
-
-
-@admin.register(DocumentGroupRecipient)
-class DocumentGroupRecipientadmin(admin.ModelAdmin):
-    list_display = ["id",
                     "document_group",
-                    "recipient",
-                    "order",
                     "note",
-                    "created_by",
-                    ]
-    search_fields =["order"]
-
+                    "order",
+                    "auth_type",
+                    "created_by",]
+    search_fields =["email"]
 
 
 
@@ -90,9 +81,6 @@ class DocumentFieldadmin(admin.ModelAdmin):
                     "created_by",
                 
                     ]
-
-
-
 
 @admin.register(DocumentSharedLink)
 class DocumentSharedLinkadmin(admin.ModelAdmin):

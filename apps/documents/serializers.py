@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apps.documents.models import Field ,Document,DocumentGroup,Recipient,DocumentField,DocumentGroupRecipient,DocumentSharedLink # Import the DocumentField model
+from apps.documents.models import Field ,Document,DocumentGroup,Recipient,DocumentField,DocumentSharedLink # Import the DocumentField model
 from rest_framework.exceptions import ValidationError
 class DocumentsFieldsSerializer(serializers.ModelSerializer):
     name = serializers.CharField(required=True)  # Define the 'name' field
@@ -67,23 +67,22 @@ class DocumentGroupSerializer(serializers.ModelSerializer):
         return document_group
 
 class RecipientSerializer(serializers.ModelSerializer):
-    order = serializers.CharField(required = False)
-    note = serializers.CharField(required = False)
+  
     class Meta:
         model = Recipient
-        fields = ['id','name', 'email', 'role', 'order','note']
+        fields = ['id','name', 'email', 'role', 'order','note','auth_type']
+        
+       
 
-class DocumentRecipientSerializer(serializers.Serializer):
-    document_id = serializers.IntegerField()
-    recipients = RecipientSerializer(many=True)
+
 
 class DocumentsRecipientSerializer(serializers.ModelSerializer):
     document_group_id = serializers.IntegerField(write_only=True)
-    documents = DocumentRecipientSerializer(many=True, required=False, write_only=True)
+    recipients = RecipientSerializer(many=True, required=False, write_only=True)
 
     class Meta:
         model = Recipient 
-        fields = ['id','document_group_id', 'documents']
+        fields = ['id','document_group_id', 'recipients']
         extra_kwargs = {
             'created_by': {'read_only': True},
             'updated_by': {'read_only': True},
@@ -92,57 +91,44 @@ class DocumentsRecipientSerializer(serializers.ModelSerializer):
         }
         
          
-    def get_parent_instace(self,document_group_id):
-        
+    def get_parent_instance(self,document_group_id):
         document_group_instance = DocumentGroup.objects.filter(id=document_group_id).first()
         return document_group_instance
     
     
-  
-         
     def validate(self, attrs):
         document_group_id = attrs.get("document_group_id")
-        instance = self.get_parent_instace(document_group_id)
+        instance = self.get_parent_instance(document_group_id)
 
         if not instance:
-            raise ValidationError("Invaild document id ")
+            raise ValidationError("Invaild document group  id ")
         
         return super().validate(attrs)
     
-    def add_throught_table_data (self,instance,recipient,order,note,user):
-        # if DocumentGroupRecipient.objects.filter(document_group,)
-        DocumentGroupRecipient.objects.create(
-                document_group = instance,
-                recipient=recipient,
-                note =note,
-                order = order,
-                created_by = user,updated_by =user
-            )
-        
 
+        
     def create(self, validated_data):
-        documents_data = validated_data.get('documents', [])
-        user = self.context['request'].user 
+        """
+        Create recipients related to a document group.
+        """
+        recipients_data = validated_data.get('recipients', [])
+        user = self.context['request'].user  # Accessing user from context
         document_group_id = validated_data.get("document_group_id")
-        instance = self.get_parent_instace(document_group_id)
-        
-        created_recipients = [] 
-        for document_data in documents_data:
-            document_id = document_data.get('document_id')
-            recipients_data = document_data.get('recipients', [])
-            
-            for recipient_data in recipients_data:
-                recipient_data["created_by"] =user
-                recipient_data["updated_by"] =user
-                order = recipient_data.pop('order', [])
-                note = recipient_data.pop('note', [])
-                recipient, created = Recipient.objects.get_or_create(email=recipient_data['email'], defaults=recipient_data)
-                response = self.add_throught_table_data(instance,recipient,order,note,user)
-                
-                created_recipients.append(recipient)
+        document_group_instance = self.get_parent_instance(document_group_id)
 
-    
+        created_recipients = []
+
+        for recipient_data in recipients_data:
+            recipient_data["created_by"] = user
+            recipient_data["updated_by"] = user
+            recipient_data["document_group"] = document_group_instance  # Associate with DocumentGroup
+
+            # Create each recipient
+            recipient = Recipient.objects.create(**recipient_data)
+            created_recipients.append(recipient)
+
         return created_recipients
+ 
     
     
 class DocumentFieldSerializer(serializers.ModelSerializer):
@@ -156,15 +142,43 @@ class DocumentFieldSerializer(serializers.ModelSerializer):
 
 class CreateDocumentFieldBulkSerializer(serializers.Serializer):
     document_id = serializers.IntegerField()
+    document_group_id = serializers.IntegerField()
     fields = DocumentFieldSerializer(many=True)
+    
+    
+    
+    
+    def get_realted_instance(self,document_group_id,document_id):
+        document_group_instance = DocumentGroup.objects.filter(id=document_group_id).first()
+        return document_group_instance
+    
+    
+    
+    def check_post_data(self,recipient_id,filed_id):
+        recipient_instance = Recipient.objects.filter(id=recipient_id).first()
+
+        if not recipient_instance:
+            raise ValidationError("Invaild recipient Id")
+        
+        
+        filed_instance = Field.objects.filter(id=filed_id).first()
+        if not filed_instance:
+            raise ValidationError("Invaild Field Id")
+        
+       
+
+   
     def create(self, validated_data):
+        document_group_id = validated_data['document_group_id']
         document_id = validated_data['document_id']
         fields_data = validated_data['fields']
         user = self.context['request'].user 
          
         document_fields = []
         for field_data in fields_data:
+            check_post_data = self.check_post_data( field_data['recipient']['id'],field_data['field']['id'])
             if DocumentField.objects.filter(document_id=document_id,
+                                            document_group = self.get_realted_instance(document_group_id,document_group_id),
                                             recipient_id=field_data['recipient']['id'],
                                             field_id=field_data['field']['id'],
                                            positionX=field_data['positionX'],
@@ -173,6 +187,7 @@ class CreateDocumentFieldBulkSerializer(serializers.Serializer):
                 raise ValidationError("Recipient with this document and field id is already exits")
             
             document_field = DocumentField(
+                document_group = self.get_realted_instance(document_group_id,document_group_id),
                 document_id=document_id,
                 recipient_id=field_data['recipient']['id'],
                 field_id=field_data['field']['id'],
@@ -221,10 +236,10 @@ class DocumentRecipients(serializers.ModelSerializer):
     
 
 class SingleDoc(serializers.ModelSerializer):
-    orderrecipients = DocumentRecipients(many=True)
+    recipients = DocumentRecipients(many=True)
     class Meta:
         model = DocumentGroup
-        fields = ['title', 'status', 'note',  'signing_type', 'subject', 'message','document_type','orderrecipients']
+        fields = ['title', 'status', 'note',  'signing_type', 'subject', 'message','document_type','recipients']
            
     
     
@@ -250,12 +265,7 @@ class SingleDocumentSerializerResponse(serializers.ModelSerializer):
         model = Document
         fields = ['id', 'title', 'file_data', 'documentfield_document',"groups_documents"]
 
-# groups_documents = SingleDoc(many=True)
-# document
-# documentfield_document
-# field
-# documentfield_fields
-     
+
 ################################
 
   

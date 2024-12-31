@@ -1,7 +1,7 @@
 from django.shortcuts import render
 
 # Create your views here.
-from  apps.documents.models import Field,DocumentGroup,Document,Recipient,DocumentGroupRecipient,DocumentField
+from  apps.documents.models import Field,DocumentGroup,Document,Recipient,DocumentField
 
 from rest_framework import viewsets
 from rest_framework import generics
@@ -64,21 +64,22 @@ class DocumentsAssignRecipientAPI(viewsets.ModelViewSet):
         
         
 class RemoveRecipientsAPI(APIView):
-    def delete(self, request, *args, **kwargs):
-        document_group = request.query_params.get('document_group')
-        recipient_id = request.query_params.get('recipient_id')
+    pass
+    # def delete(self, request, *args, **kwargs):
+    #     document_group = request.query_params.get('document_group')
+    #     recipient_id = request.query_params.get('recipient_id')
 
-        try:
-            instance = DocumentGroupRecipient.objects.get(document_group=document_group,recipient=recipient_id)
-        except DocumentField.DoesNotExist:
-            return Response({"message": "Recipient field not found."}, status=status.HTTP_404_NOT_FOUND)
+    #     try:
+    #         instance = DocumentGroupRecipient.objects.get(document_group=document_group,recipient=recipient_id)
+    #     except DocumentField.DoesNotExist:
+    #         return Response({"message": "Recipient field not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        try:
-            # Delete the document field
-            instance.delete()
-            return Response({"message": "Recipient field deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
-        except Exception as e:
-            return Response({"message": "An error occurred while deleting the Recipient field."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    #     try:
+    #         # Delete the document field
+    #         instance.delete()
+    #         return Response({"message": "Recipient field deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+    #     except Exception as e:
+    #         return Response({"message": "An error occurred while deleting the Recipient field."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         
 class DocumentFieldCreateAPIView(APIView):

@@ -41,7 +41,7 @@ class DocumentGroupViewSet(viewsets.ModelViewSet):
     
 class DocumentsAssignRecipientAPI(viewsets.ModelViewSet):
     serializer_class = DocumentsRecipientSerializer
-
+    queryset = ""
     def create(self, request, *args, **kwargs):
         # Extract the data from the request
         serializer = self.get_serializer(data=request.data)
@@ -55,7 +55,6 @@ class DocumentsAssignRecipientAPI(viewsets.ModelViewSet):
             return Response(context, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
     
     def put(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
@@ -97,9 +96,6 @@ class DocumentsAssignRecipientAPI(viewsets.ModelViewSet):
     
     
     
-
-
-
         
 class RemoveRecipientsAPI(APIView):
     def delete(self, request, grp_id, rec_id, *args, **kwargs):

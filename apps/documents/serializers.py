@@ -9,13 +9,12 @@ class FieldsSerializer(serializers.ModelSerializer):
         fields = ["id", "name"]  
 
 
-
 class RecipientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipient
         fields = ['id','name', 'email', 'role', 'order','note','auth_type',]
         
-        
+
 class Gropupdocumentfieldsresponse(serializers.ModelSerializer):
     recipient = RecipientSerializer(read_only=True) 
     class Meta:
@@ -34,7 +33,6 @@ class DocumentSerializer(serializers.ModelSerializer):
 
 
         
-        
        
 
 class ResponseDocumentGroupSerializer(serializers.ModelSerializer):
@@ -42,8 +40,8 @@ class ResponseDocumentGroupSerializer(serializers.ModelSerializer):
     group_recipients = RecipientSerializer(many=True,read_only=True) 
     class Meta:
         model = DocumentGroup
-        fields = ['id','title','documents', 'status', 'note',  'signing_type', 'subject', 'message','document_type',"group_recipients",
-                  "validity","days_to_complete","reminder_duration",  "auto_reminder" ]
+        fields = ['title','documents', 'status', 'note',  'signing_type', 'subject', 'message','document_type',"group_recipients",
+                  "validity","days_to_complete","reminder_duration",   "auto_reminder",  'created_by', 'updated_by', 'created_by_date', 'updated_by_date' ]
         
         
         
@@ -53,11 +51,11 @@ class DocumentGroupSerializer(serializers.ModelSerializer):
     upload_documents = serializers.ListField(
         child=serializers.FileField(), required=False, write_only=True
     )
-    # documents = DocumentSerializer(many=True, read_only=True)  
+    documents = DocumentSerializer(many=True, read_only=True)  
     class Meta:
         model = DocumentGroup
-        fields = ['id','title', 'status', 'note', 'signing_type', 'subject', 'message', 'upload_documents','document_type'
-                  "validity","days_to_complete","reminder_duration",  "auto_reminder"  ]
+        fields = ['id','title', 'status', 'note', 'documents', 'signing_type', 'subject', 'message', 'upload_documents',
+                   "validity","days_to_complete","reminder_duration",   "auto_reminder",]
         extra_kwargs = {
             'created_by': {'read_only': True},
             'updated_by': {'read_only': True},

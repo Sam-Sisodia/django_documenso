@@ -41,10 +41,13 @@ class ResponseDocumentGroupSerializer(serializers.ModelSerializer):
     group_recipients = RecipientSerializer(many=True,read_only=True) 
     class Meta:
         model = DocumentGroup
-        fields = ['title','documents', 'status', 'note',  'signing_type', 'subject', 'message','document_type',"group_recipients"]
-       
-       
-       
+        fields = ['title','documents', 'status', 'note',  'signing_type', 'subject', 'message','document_type',"group_recipients",
+                  "validity","days_to_complete","reminder_duration",   "auto_reminder" ]
+        
+        
+        
+
+          
 class DocumentGroupSerializer(serializers.ModelSerializer):
     upload_documents = serializers.ListField(
         child=serializers.FileField(), required=False, write_only=True

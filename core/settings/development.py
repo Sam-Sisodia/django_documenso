@@ -8,16 +8,13 @@ DEBUG = os.getenv("DEBUG")
 
 ALLOWED_HOSTS = ["*"]
 
-
-
-
 CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
+    'http://localhost:3001',
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-
     "https://20.55.77.52",
     "https://localhost:3020",
     "http://localhost:3020",

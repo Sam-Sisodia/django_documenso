@@ -14,6 +14,8 @@ from rest_framework.views import APIView
 import base64
 import os
 
+import re
+from apps.utils.utils import modify_pdf
 from rest_framework.exceptions import NotFound
 class DocumentFieldAPI(viewsets.ModelViewSet):
     serializer_class = FieldsSerializer
@@ -187,71 +189,57 @@ class SingleDocumentAPI(APIView):
         
 
 
-from PyPDF2 import PdfReader, PdfWriter
-from reportlab.pdfgen import canvas
-from io import BytesIO
-from PIL import Image
-
-from reportlab.lib.pagesizes import letter
-import io
-
-
-from io import BytesIO
-from PIL import Image
-from reportlab.pdfgen import canvas
-from reportlab.pdfgen.canvas import Canvas
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from .models import Document  # Assuming 'Document' is your model
+          
+    
 
 
 class AttachDoc(APIView):
+    
+    def is_base64(self, string):
+        """
+        Helper function to check if the string is base64-encoded.
+        It checks if the string can be base64 decoded and follows a base64-like pattern.
+        """
+        try:
+            # Try decoding the string
+            base64.b64decode(string)
+            # Also, check if it matches the general base64 pattern (optional)
+            return bool(re.match(r'^[A-Za-z0-9+/=]+$', string))
+        except Exception:
+            return False
+        
+        
     def get(self, request, *args, **kwargs):
         try:
             document_group = Document.objects.get(id=9)
+            pdf_bytes = base64.b64decode(document_group.file_data) 
+
+            # Fetch the signed document (image) from the database
             sign = Document.objects.get(id=10)
-            sign_data = base64.b64decode(sign.file_data)
-
-            positionX = 1  # X-coordinate for signature placement
-            positionY = 2  # Y-coordinate for signature placement
-            page_number = 1  # Page number for signature (starts from 1)
-            width = 100
-            height = 50
-
-            pdf_bytes = base64.b64decode(document_group.file_data)
-
-            # Create a new PDF object in memory
-            pdf_buffer = BytesIO()
-            pdf_writer = Canvas(pdf_buffer)
-
-            reader = PdfReader(io.BytesIO(pdf_bytes))
-            for page_num in range(len(reader.pages)):
-                page = reader.pages[page_num]
-                if page_num == (page_number - 1):  # Adjust page indexing (starts from 0)
-
-                    # Convert signature data to PIL Image
-                    signature_image = Image.open(io.BytesIO(sign_data))
-
-                    # Adjust image size for PDF (in inches)
-                    width_inches = width / 72
-                    height_inches = height / 72
-
-                
-                    pdf_writer.drawImage(signature_image, positionX, positionY, width=width_inches, height=height_inches)
-
-                # Add the original page content to the new PDF
-                pdf_writer.draw_page(page)
-
-            #
-            pdf_data = pdf_buffer.getvalue()
+            value = sign.file_data
             
+            positionX = 60
+            positionY = 60
+            page_number =1
 
+            
+            if self.is_base64(value):
+                # It's an image (base64-encoded), decode it
+                value = base64.b64decode(value)
+                is_image = True
+             
+                modify_pdf(positionX,positionY,page_number,pdf_bytes,is_image,value)
+                # pass
+            else:
+                is_image = False
+                modify_pdf(positionX,positionY,page_number,pdf_bytes,is_image,value)
+                
+        
+          
             context = {
-                "message": "Your document is done and signed.",
+                "message": "Your document has been updated successfully."
             }
-
-            # Return the modified PDF data (you can adjust the response format as needed)
-            return Response(pdf_data, content_type='application/pdf')
+            return Response(context)
 
         except Document.DoesNotExist:
-            raise NotFound(detail="Document not found")
+            raise Response("Document not found")

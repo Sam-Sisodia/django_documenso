@@ -1,8 +1,4 @@
 
-
-
-
-
 # def recipientsmail(document_links,subject,message):
 #     results = []  # List to store results for each email attempt
 

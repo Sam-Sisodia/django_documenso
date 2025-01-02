@@ -27,7 +27,15 @@ class DocumentSerializer(serializers.ModelSerializer):
     documentfield_document = Gropupdocumentfieldsresponse(many=True, read_only=True) 
     class Meta:
         model = Document
-        fields = ['id', 'title','documentfield_document']
+        fields = ['id', 'title',"file_data",'documentfield_document']
+        
+    def to_representation(self, instance):
+        # Get the original representation
+        representation = super().to_representation(instance)
+        if self.context.get("view").action != "retrieve":
+            representation.pop("file_data", None)  
+
+        return representation
 
 
 
@@ -40,7 +48,7 @@ class ResponseDocumentGroupSerializer(serializers.ModelSerializer):
     group_recipients = RecipientSerializer(many=True,read_only=True) 
     class Meta:
         model = DocumentGroup
-        fields = ['title','documents', 'status', 'note',  'signing_type', 'subject', 'message','document_type',"group_recipients",
+        fields = ['id','title','documents', 'status', 'note',  'signing_type', 'subject', 'message','document_type',"group_recipients",
                   "validity","days_to_complete","reminder_duration",   "auto_reminder",  'created_by', 'updated_by', 'created_by_date', 'updated_by_date' ]
         
         
@@ -242,10 +250,10 @@ class DocumentRecipients(serializers.ModelSerializer):
    
    
 class SingleDoc(serializers.ModelSerializer):
-    recipients = DocumentRecipients(many=True)
+    # recipients = DocumentRecipients(many=True)
     class Meta:
         model = DocumentGroup
-        fields = ['title', 'status', 'note',  'signing_type', 'subject', 'message','document_type','recipients']
+        fields = ['title', 'status', 'note',  'signing_type', 'subject', 'message','document_type',]
            
 class FieldData(serializers.ModelSerializer):
   class Meta:
@@ -259,10 +267,10 @@ class DocumentFieldSerializer(serializers.ModelSerializer):
 
 class SingleDocumentSerializerResponse(serializers.ModelSerializer):
     documentfield_document = DocumentFieldSerializer(many=True, read_only=True)  
-    groups_documents = SingleDoc(many=True)
+    groups_documents = ResponseDocumentGroupSerializer(many=True)
     class Meta:
         model = Document
-        fields = ['id', 'title', 'file_data', 'documentfield_document',"groups_documents"]
+        fields = ['id', 'title', 'file_data',"documentfield_document",'groups_documents']
 
 
 ################################

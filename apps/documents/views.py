@@ -31,8 +31,7 @@ class DocumentFieldAPI(viewsets.ModelViewSet):
     
 class DocumentGroupViewSet(viewsets.ModelViewSet):
     serializer_class = DocumentGroupSerializer
-    
-    
+
     def get_serializer(self, *args, **kwargs):
         if self.request.method in ["POST"]:
             serializer_class = self.get_serializer_class()

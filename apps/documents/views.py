@@ -30,8 +30,19 @@ class DocumentFieldAPI(viewsets.ModelViewSet):
         
     
 class DocumentGroupViewSet(viewsets.ModelViewSet):
-    queryset = DocumentGroup.objects.all()
     serializer_class = DocumentGroupSerializer
+    
+    
+    def get_serializer(self, *args, **kwargs):
+        if self.request.method in ["POST"]:
+            serializer_class = self.get_serializer_class()
+        else:
+            serializer_class = ResponseDocumentGroupSerializer
+
+        kwargs.setdefault("context", self.get_serializer_context())
+        return serializer_class(*args, **kwargs)
+    
+    
     def create(self, request, *args, **kwargs):
         # Extract the data from the request
         serializer = self.get_serializer(data=request.data)
@@ -41,6 +52,10 @@ class DocumentGroupViewSet(viewsets.ModelViewSet):
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+    def get_queryset(self):
+        return  DocumentGroup.objects.all()
     
     
 class DocumentsAssignRecipientAPI(viewsets.ModelViewSet):

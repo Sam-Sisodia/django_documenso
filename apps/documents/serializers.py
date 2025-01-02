@@ -10,30 +10,30 @@ class FieldsSerializer(serializers.ModelSerializer):
 
 
 
-
-
+class RecipientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recipient
+        fields = ['id','name', 'email', 'role', 'order','note','auth_type',]
+        
+        
 class Gropupdocumentfieldsresponse(serializers.ModelSerializer):
+    recipient = RecipientSerializer(read_only=True) 
     class Meta:
         model = DocumentField
-        fields = ['id', 'document',"value","positionX","positionY","width","height","page_no","field"] 
+        fields = ['id', 'document',"value","positionX","positionY","width","height","page_no","field","recipient"] 
         
         
-
         
 class DocumentSerializer(serializers.ModelSerializer):
     documentfield_document = Gropupdocumentfieldsresponse(many=True, read_only=True) 
     class Meta:
         model = Document
-        fields = ['id', 'title',"file_data",'documentfield_document']
+        fields = ['id', 'title','documentfield_document']
 
 
 
 
         
-class RecipientSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Recipient
-        fields = ['id','name', 'email', 'role', 'order','note','auth_type',]
         
        
 
@@ -42,8 +42,8 @@ class ResponseDocumentGroupSerializer(serializers.ModelSerializer):
     group_recipients = RecipientSerializer(many=True,read_only=True) 
     class Meta:
         model = DocumentGroup
-        fields = ['title','documents', 'status', 'note',  'signing_type', 'subject', 'message','document_type',"group_recipients",
-                  "validity","days_to_complete","reminder_duration",   "auto_reminder" ]
+        fields = ['id','title','documents', 'status', 'note',  'signing_type', 'subject', 'message','document_type',"group_recipients",
+                  "validity","days_to_complete","reminder_duration",  "auto_reminder" ]
         
         
         
@@ -53,10 +53,11 @@ class DocumentGroupSerializer(serializers.ModelSerializer):
     upload_documents = serializers.ListField(
         child=serializers.FileField(), required=False, write_only=True
     )
-    documents = DocumentSerializer(many=True, read_only=True)  
+    # documents = DocumentSerializer(many=True, read_only=True)  
     class Meta:
         model = DocumentGroup
-        fields = ['id','title', 'status', 'note', 'documents', 'signing_type', 'subject', 'message', 'upload_documents']
+        fields = ['id','title', 'status', 'note', 'signing_type', 'subject', 'message', 'upload_documents','document_type'
+                  "validity","days_to_complete","reminder_duration",  "auto_reminder"  ]
         extra_kwargs = {
             'created_by': {'read_only': True},
             'updated_by': {'read_only': True},

@@ -11,6 +11,8 @@ from typing import List
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
+import base64
+import os
 
 from rest_framework.exceptions import NotFound
 class DocumentFieldAPI(viewsets.ModelViewSet):
@@ -178,5 +180,136 @@ class SingleDocumentAPI(APIView):
             document_group = Document.objects.get(id=document_id)
             serializer = SingleDocumentSerializerResponse(document_group)     
             return Response(serializer.data)
+        except DocumentGroup.DoesNotExist:
+            raise NotFound(detail="DocumentGroup not found")
+        
+        
+        
+
+
+from PyPDF2 import PdfReader, PdfWriter
+from reportlab.pdfgen import canvas
+from io import BytesIO
+from PIL import Image
+
+from reportlab.lib.pagesizes import letter
+import io
+
+
+from io import BytesIO
+from PIL import Image
+from reportlab.pdfgen import canvas
+from reportlab.pdfgen.canvas import Canvas
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from .models import Document  # Assuming 'Document' is your model
+
+
+class AttachDoc(APIView):
+    def get(self, request, *args, **kwargs):
+        try:
+            document_group = Document.objects.get(id=9)
+            sign = Document.objects.get(id=10)
+            sign_data = base64.b64decode(sign.file_data)
+
+            positionX = 60 # X-coordinate for signature placement
+            positionY = 60 # Y-coordinate for signature placement
+            page_number = 1  # Page number for signature (starts from 1)
+            width = 100
+            height = 50
+
+            pdf_bytes = base64.b64decode(document_group.file_data)
+
+            # Create a new PDF object in memory
+            pdf_buffer = BytesIO()
+            pdf_writer = Canvas(pdf_buffer)
+
+            reader = PdfReader(io.BytesIO(pdf_bytes))
+            for page_num in range(len(reader.pages)):
+                page = reader.pages[page_num]
+                if page_num == (page_number - 1):  # Adjust page indexing (starts from 0)
+
+                    # Convert signature data to PIL Image
+                    signature_image = Image.open(io.BytesIO(sign_data))
+
+                    # Adjust image size for PDF (in inches)
+                    width_inches = width / 72
+                    height_inches = height / 72
+                    value = signature_image
+
+                    # Draw the signature image onto the PDF page
+                    pdf_writer.drawImage(value, positionX, positionY, width=width_inches, height=height_inches)
+
+                # Add the original page content to the new PDF
+                pdf_writer.draw_page(page)
+
+            pdf_data = pdf_buffer.getvalue()
+
+            context = {
+                "message": "Your document is done and signed.",
+            }
+
+            # Return the modified PDF data (you can adjust the response format as needed)
+            return Response(pdf_data, content_type='application/pdf')
+
+        except Document.DoesNotExist:
+            raise NotFound(detail="Document not found")
+        
+        
+        
+        
+        
+# class AttachDoc(APIView):
+    def get(self, request, *args, **kwargs):
+        try:
+            document_group = Document.objects.get(id=9)
+            sign  = Document.objects.get(id=10)
+            sign_data = base64.b64decode(sign.file_data)
+           
+        
+            positionX = 1
+            positionY = 2
+            page_number = 1
+            width = 100
+            height = 50
+            pdf_bytes = base64.b64decode(document_group.file_data)  # Adjust encoding if necessary
+
+            
+            pdf_bytes = base64.b64decode(document_group.file_data)
+            pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
+            pdf_writer = PdfWriter()
+            
+            
+            for page_num in range(len(pdf_reader.pages)):
+                page = pdf_reader.pages[page_num]
+                if page_num == page_number:
+              
+                    canvas = canvas.Canvas(page)
+
+                    # Load the signature image
+                    signature_image = Image.open(io.BytesIO(sign_data))
+                    
+                    
+                    width, height = signature_image.size
+                    width_inches = width / 72
+                    height_inches = height / 72
+                    canvas.drawImage(io.BytesIO(sign_data), positionX, positionY, width_inches, height_inches)
+
+                    # Merge the canvas with the page
+                    canvas.save()
+                    
+                pdf_writer.add_page(page)
+                
+                
+            output_path = os.path.join(os.getcwd(), 'sajal_signed.pdf')
+            with open(output_path, "wb") as output_file:
+                pdf_writer.write(output_file)
+                
+                
+            
+            cotext = {
+                "message": "your  document  is done fix"
+            }     
+            return Response(cotext)
         except DocumentGroup.DoesNotExist:
             raise NotFound(detail="DocumentGroup not found")

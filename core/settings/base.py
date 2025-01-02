@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     "apps.users",
     "apps.documents",
     # "apps.utils",
+    "corsheaders",
+    
     
     
     

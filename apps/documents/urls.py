@@ -15,7 +15,6 @@ urlpatterns = [
     path('get-single-document/<int:document_id>/', views.SingleDocumentAPI.as_view(), name='get-single-document'),
     path('add-document-fields/', views.DocumentFieldCreateAPIView.as_view(), name='add-document-fields'),
     path('remove-recipient/<int:grp_id>/<int:rec_id>/', views.RemoveRecipientsAPI.as_view(), name='remove-recipient'),
-
-    # path('', views.LoginView.as_view(), name='login'),
-    # path('register/', views.RegisterView.as_view(), name='register'),
+    path('updated-document/', views.AttachDoc.as_view(), name='updated-document'),
+    
 ]+ router.urls

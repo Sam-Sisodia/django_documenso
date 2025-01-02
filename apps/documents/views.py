@@ -236,7 +236,7 @@ class AttachDoc(APIView):
                     width_inches = width / 72
                     height_inches = height / 72
 
-                    # Draw the signature image onto the PDF page
+                
                     pdf_writer.drawImage(signature_image, positionX, positionY, width=width_inches, height=height_inches)
 
                 # Add the original page content to the new PDF

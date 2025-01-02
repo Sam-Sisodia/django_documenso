@@ -1,12 +1,10 @@
 from PyPDF2 import PdfReader, PdfWriter
-
 from PIL import Image
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.utils import ImageReader 
 import io
 import os
 from reportlab.pdfgen import canvas
-
 
 def modify_pdf(positionX, positionY, page_number, pdf_bytes, is_image, value):
     pdf_reader = PdfReader(io.BytesIO(pdf_bytes))

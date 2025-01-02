@@ -188,18 +188,8 @@ class SingleDocumentAPI(APIView):
         
         
 
-
-          
-    
-
-
-class AttachDoc(APIView):
-    
+class RecipientUpdatedDocumentAPI(APIView):
     def is_base64(self, string):
-        """
-        Helper function to check if the string is base64-encoded.
-        It checks if the string can be base64 decoded and follows a base64-like pattern.
-        """
         try:
             # Try decoding the string
             base64.b64decode(string)
@@ -207,7 +197,6 @@ class AttachDoc(APIView):
             return bool(re.match(r'^[A-Za-z0-9+/=]+$', string))
         except Exception:
             return False
-        
         
     def get(self, request, *args, **kwargs):
         try:
@@ -221,21 +210,16 @@ class AttachDoc(APIView):
             positionX = 60
             positionY = 60
             page_number =1
-
             
             if self.is_base64(value):
-                # It's an image (base64-encoded), decode it
                 value = base64.b64decode(value)
                 is_image = True
-             
                 modify_pdf(positionX,positionY,page_number,pdf_bytes,is_image,value)
                 # pass
             else:
                 is_image = False
                 modify_pdf(positionX,positionY,page_number,pdf_bytes,is_image,value)
-                
-        
-          
+
             context = {
                 "message": "Your document has been updated successfully."
             }

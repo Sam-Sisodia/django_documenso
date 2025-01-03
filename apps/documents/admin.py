@@ -89,9 +89,10 @@ class DocumentSharedLinkadmin(admin.ModelAdmin):
                     "recipient",
                     "token",
                     "is_send",
+                    "otp",
+                    "otp_expiry",
                     "created_at",                
                     "created_by",
-                    
                     ]
 
 

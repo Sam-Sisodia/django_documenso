@@ -18,7 +18,6 @@ class RecipientSerializer(serializers.ModelSerializer):
         model = Recipient
         fields = ['id','name','email', 'role', 'order','note','auth_type']
         
-
 class Gropupdocumentfieldsresponse(serializers.ModelSerializer):
     recipient = RecipientSerializer(read_only=True) 
     class Meta:

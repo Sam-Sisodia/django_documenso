@@ -8,6 +8,8 @@ from apps.utils.models import TimeStampModel
 from apps.documents.enum import SigningType,DocumentStatus ,DocumentType,RecipientRole,DocumentValidity,RecipientAuthType
 from django.utils.timezone import now
 
+from datetime import timedelta
+
 class Field(models.Model):
     name = models.CharField(max_length=30)  
 
@@ -53,10 +55,6 @@ class DocumentGroup(TimeStampModel):
     class Meta:
         db_table = 'documents_group'  
     
-
-
-
-
 class Recipient(TimeStampModel):
     name = models.CharField(max_length=255)
     email = models.EmailField()
@@ -120,6 +118,20 @@ class DocumentSharedLink(TimeStampModel):
     token = models.CharField(max_length=255, null=True, blank=True,unique=True)
     created_at = models.DateTimeField(default=now)
     is_send = models.BooleanField(default=False)
+    otp = models.CharField(max_length=6, blank=True, null=True)
+    otp_expiry = models.DateTimeField(null=True, blank=True)
+    
+    def generate_otp(self):
+        """Generate OTP and set expiration time."""
+        
+        self.otp = "123456"  # Replace with actual OTP generation logic
+        self.otp_expiry = now() + timedelta(minutes=5)  # OTP expires in 5 minutes
+        self.save()
+        
+        
+    def is_otp_valid(self, otp):
+        """Check if OTP is valid and not expired."""
+        return self.otp == otp and self.otp_expiry > now()
 
     def __str__(self):
         return f"Shared Link: {self.token}"

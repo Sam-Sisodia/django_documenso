@@ -2,6 +2,9 @@ from rest_framework import serializers
 from apps.documents.models import Field ,Document,DocumentGroup,Recipient,DocumentField,DocumentSharedLink # Import the DocumentField model
 from rest_framework.exceptions import ValidationError
 import base64
+from apps.documents.email import recipientsmail
+import uuid
+from apps.documents.enum import RecipientAuthType,SigningType,DocumentStatus 
 class FieldsSerializer(serializers.ModelSerializer):
     name = serializers.CharField(required=True)  # Define the 'name' field
     class Meta:
@@ -38,11 +41,7 @@ class DocumentSerializer(serializers.ModelSerializer):
         return representation
 
 
-
-
-        
-       
-
+    
 class ResponseDocumentGroupSerializer(serializers.ModelSerializer):
     documents = DocumentSerializer(many=True, read_only=True) 
     group_recipients = RecipientSerializer(many=True,read_only=True) 
@@ -278,3 +277,65 @@ class DocumentSharedLinkSerializer(serializers.ModelSerializer):
     class Meta:
         model = DocumentSharedLink
         fields = '__all__'
+        
+    
+class SendDocumentSerializer(serializers.Serializer):
+    document_group_id = serializers.IntegerField(required=True)
+    subject = serializers.CharField(max_length=255, required=False)
+    message = serializers.CharField(max_length=1000, required=False)
+
+    def validate_document_group_id(self, value):
+        if not DocumentGroup.objects.filter(id=value).exists():
+            raise serializers.ValidationError("The specified document group does not exist.")
+        return value
+    
+    def get_document_group_instance(self,obj):
+        instance = DocumentGroup.objects.get(id = obj)
+        return instance
+    
+    
+    def is_document_share(self,ids):
+        obj = DocumentSharedLink.objects.filter(id__in= ids)
+        for id in obj:
+            id.is_send = True
+            id.save()
+    
+    def create(self, validated_data):
+        document_group_id = validated_data['document_group_id']
+        subject = validated_data.get('subject', "Shared Documents")
+        message = validated_data.get('message', "")
+        user = self.context['request'].user
+        recipients = Recipient.objects.filter(document_group=document_group_id)
+        mail_data = []
+        for recipient in recipients:
+            if recipient.auth_type == RecipientAuthType.EMAIL.value:  # Process only EMAIL auth_type
+                token = uuid.uuid4()
+                obj = DocumentSharedLink.objects.create(
+                    document_group_id=document_group_id,
+                    recipient=recipient,
+                    token=token,
+                    created_by=user,
+                    updated_by=user
+                )
+                mail_data.append({
+                    "id": obj.id,
+                    "email": recipient.email,
+                    "token": token,
+                    "note": recipient.note,
+                    "order": recipient.order,
+                     
+                })
+        
+        if mail_data:
+            document_instance = self.get_document_group_instance(document_group_id)
+            if document_instance.signing_type ==SigningType.SEQUENTIAL:
+                sorted_data = sorted(mail_data, key=lambda x: x['order'])
+                mail_data = [sorted_data[0]]
+            email_sends = recipientsmail(self.context['request'],mail_data, subject, message)
+            self.is_document_share(email_sends)
+            document_instance.status = DocumentStatus.PENDING 
+            document_instance.save()
+    
+        return validated_data
+            
+        

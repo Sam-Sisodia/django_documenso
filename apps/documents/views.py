@@ -5,7 +5,7 @@ from  apps.documents.models import Field,DocumentGroup,Document,Recipient,Docume
 
 from rest_framework import viewsets
 from rest_framework import generics
-from apps.documents.serializers import FieldsSerializer,DocumentGroupSerializer,DocumentsRecipientSerializer,RecipientSerializer,ResponseDocumentGroupSerializer,CreateDocumentFieldBulkSerializer,SingleDocumentSerializerResponse,UpdateDocumentsFieldsSerilalizer
+from apps.documents.serializers import FieldsSerializer,DocumentGroupSerializer,DocumentsRecipientSerializer,RecipientSerializer,ResponseDocumentGroupSerializer,CreateDocumentFieldBulkSerializer,SingleDocumentSerializerResponse,UpdateDocumentsFieldsSerilalizer,SendDocumentSerializer
 from django.db.models import Q
 from typing import List
 from rest_framework.response import Response
@@ -51,7 +51,6 @@ class DocumentGroupViewSet(viewsets.ModelViewSet):
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
     
     def get_queryset(self):
         return  DocumentGroup.objects.all()
@@ -200,7 +199,20 @@ class SingleDocumentAPI(APIView):
             raise NotFound(detail="DocumentGroup not found")
         
         
+    
+    
+
+class SendDocumentToRecipient(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = SendDocumentSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Document fields created and emails sent successfully"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
+    
+    
+    
 
 class RecipientUpdatedDocumentAPI(APIView):
     def is_base64(self, string):
@@ -220,7 +232,6 @@ class RecipientUpdatedDocumentAPI(APIView):
             # Fetch the signed document (image) from the database
             sign = Document.objects.get(id=10)
             value = sign.file_data
-            
             positionX = 60
             positionY = 60
             page_number =1
@@ -241,3 +252,6 @@ class RecipientUpdatedDocumentAPI(APIView):
 
         except Document.DoesNotExist:
             raise Response("Document not found")
+
+
+

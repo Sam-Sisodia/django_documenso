@@ -85,11 +85,13 @@ class DocumentFieldadmin(admin.ModelAdmin):
 @admin.register(DocumentSharedLink)
 class DocumentSharedLinkadmin(admin.ModelAdmin):
     list_display = ["id",
-                    "document",
+                    "document_group",
                     "recipient",
                     "token",
+                    "is_send",
                     "created_at",                
                     "created_by",
+                    
                     ]
 
 

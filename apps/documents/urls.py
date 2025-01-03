@@ -14,5 +14,7 @@ urlpatterns = [
     path('add-document-fields/', views.DocumentFieldCreateAPIView.as_view(), name='add-document-fields'),
     path('remove-recipient/<int:grp_id>/<int:rec_id>/', views.RemoveRecipientsAPI.as_view(), name='remove-recipient'),
     path('recipient-updated-document/', views.RecipientUpdatedDocumentAPI.as_view(), name='recipient-updated-document'),
+    path('send-documents/', views.SendDocumentToRecipient.as_view(), name='send-documents'),
+  
     
 ]+ router.urls

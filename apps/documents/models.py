@@ -80,7 +80,7 @@ class Recipient(TimeStampModel):
     
     
 class DocumentField(TimeStampModel):
-  
+
     value = models.CharField(max_length=255, null=True, blank=True)
     positionX = models.CharField(max_length=255, null=True, blank=True)
     positionY = models.CharField(max_length=255, null=True, blank=True)
@@ -103,10 +103,10 @@ class DocumentField(TimeStampModel):
 
 
 class DocumentSharedLink(TimeStampModel):
-    document = models.ForeignKey(
-        'Document',
+    document_group = models.ForeignKey(
+        'DocumentGroup',
         on_delete=models.CASCADE,
-        related_name='shared_links',
+        related_name='documentgroup_shared_links',
         null=True,
         blank=True
     )
@@ -119,9 +119,13 @@ class DocumentSharedLink(TimeStampModel):
     )
     token = models.CharField(max_length=255, null=True, blank=True)
     created_at = models.DateTimeField(default=now)
+    is_send = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Shared Link: {self.token}"
+    
+    
+
 
 
 

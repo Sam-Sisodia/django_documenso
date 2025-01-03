@@ -64,7 +64,7 @@ class Recipient(TimeStampModel):
     document_group = models.ForeignKey('DocumentGroup', on_delete=models.CASCADE, related_name='group_recipients')
     note = models.TextField(null=True, blank=True)  
     order = models.IntegerField(default=0)  
-    auth_type = models.CharField( max_length=50,  choices=RecipientAuthType.choices(),     default=RecipientAuthType.EMAIL  )
+    auth_type = models.CharField( max_length=50,  choices=RecipientAuthType.choices(),     default=RecipientAuthType.NONE  )
     
   
     
@@ -117,7 +117,7 @@ class DocumentSharedLink(TimeStampModel):
         null=True,
         blank=True
     )
-    token = models.CharField(max_length=255, null=True, blank=True)
+    token = models.CharField(max_length=255, null=True, blank=True,unique=True)
     created_at = models.DateTimeField(default=now)
     is_send = models.BooleanField(default=False)
 

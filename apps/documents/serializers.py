@@ -13,9 +13,10 @@ class FieldsSerializer(serializers.ModelSerializer):
 
 
 class RecipientSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)
     class Meta:
         model = Recipient
-        fields = ['id','name', 'email', 'role', 'order','note','auth_type',]
+        fields = ['id','name','email', 'role', 'order','note','auth_type']
         
 
 class Gropupdocumentfieldsresponse(serializers.ModelSerializer):
@@ -53,7 +54,6 @@ class ResponseDocumentGroupSerializer(serializers.ModelSerializer):
         
         
 
-          
 class DocumentGroupSerializer(serializers.ModelSerializer):
     upload_documents = serializers.ListField(
         child=serializers.FileField(), required=False, write_only=True
@@ -97,8 +97,6 @@ class DocumentGroupSerializer(serializers.ModelSerializer):
             encoded_content = base64.b64encode(file_content).decode('utf-8')  
             document = Document.objects.create(
                 title=file.name,
-                # file_data=file.read(),  # Decode file as text
-                # file_data=base64.b64encode(file.read()).decode('utf-8'),
                 file_data = encoded_content,
                 created_by=user,
                 updated_by=user,
@@ -146,18 +144,26 @@ class DocumentsRecipientSerializer(serializers.ModelSerializer):
         document_group_id = validated_data.get("document_group_id")
         document_group_instance = self.get_parent_instance(document_group_id)
 
-        created_recipients = []
+        created_or_updated_recipients = []
 
         for recipient_data in recipients_data:
-            recipient_data["created_by"] = user
-            recipient_data["updated_by"] = user
-            recipient_data["document_group"] = document_group_instance  # Associate with DocumentGroup
+            recipient_id = recipient_data.get("id")
+            if recipient_id:
+                recipient = Recipient.objects.get(id=recipient_id)
+                for key, value in recipient_data.items():
+                    if key not in ["id", "document_group"]:  # Prevent overwriting sensitive fields
+                        setattr(recipient, key, value)
+                recipient.updated_by = user  # Update the updated_by field
+                recipient.save()
+            else:
+                recipient_data["created_by"] = user
+                recipient_data["updated_by"] = user
+                recipient_data["document_group"] = document_group_instance  # Associate with DocumentGroup
+                recipient = Recipient.objects.create(**recipient_data)
 
-            # Create each recipient
-            recipient = Recipient.objects.create(**recipient_data)
-            created_recipients.append(recipient)
+            created_or_updated_recipients.append(recipient)
 
-        return created_recipients
+        return created_or_updated_recipients
 
     
 class DocumentFieldSerializer(serializers.ModelSerializer):
@@ -207,8 +213,8 @@ class CreateDocumentFieldBulkSerializer(serializers.Serializer):
                                             document_group = self.get_realted_instance(document_group_id,document_group_id),
                                             recipient_id=field_data['recipient']['id'],
                                             field_id=field_data['field']['id'],
-                                           positionX=field_data['positionX'],
-                                           positionY=field_data['positionY']).exists():
+                                            positionX=field_data['positionX'],
+                                            positionY=field_data['positionY']).exists():
                 
                 raise ValidationError("Recipient with this document and field id is already exits")
             

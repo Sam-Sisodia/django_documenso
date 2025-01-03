@@ -12,14 +12,15 @@ def recipientsmail(request,document_links, subject, message):
      # Get the dynamic host from the request object
     scheme = request.scheme  # 'http' or 'https'
     host = request.get_host()  # e.g., '127.0.0.1:8000'
-    base_url = f"{scheme}://{host}"
+    base_url = f"{os.getenv('FE_SIGN_URL')}://{host}"
+    
 
     for link in document_links:
         receiver_email = link["email"]
         token = link["token"]
         
         
-        url = f"{base_url}/document/sign-document/{token}"
+        url = f"{base_url}/{token}"
         note = f"\n\nNote: {link.get('note')}" if 'note' in link and link['note'] else ""
         
         email_body = f"{message}\n\nClick on the link to open the document: {url} \n\n{note}"

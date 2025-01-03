@@ -73,40 +73,40 @@ class DocumentsAssignRecipientAPI(viewsets.ModelViewSet):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    def put(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        document_group_id = request.data.get('document_group_id')
-        recipients_data = request.data.get('recipients', [])
-        if not document_group_id:
-            return Response({"error": "document_group_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-        existing_recipients = Recipient.objects.filter(document_group_id=document_group_id)
+    # def put(self, request, *args, **kwargs):
+    #     partial = kwargs.pop('partial', False)
+    #     document_group_id = request.data.get('document_group_id')
+    #     recipients_data = request.data.get('recipients', [])
+    #     if not document_group_id:
+    #         return Response({"error": "document_group_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+    #     existing_recipients = Recipient.objects.filter(document_group_id=document_group_id)
 
-        for recipient_data in recipients_data:
-            recipient_id = recipient_data.get('id')
+    #     for recipient_data in recipients_data:
+    #         recipient_id = recipient_data.get('id')
 
-            if recipient_id:  # Update existing recipient
-                try:
-                    recipient_instance = existing_recipients.get(id=recipient_id)
-                    recipient_serializer = RecipientSerializer(
-                        instance=recipient_instance,
-                        data=recipient_data,
-                        partial=partial
-                    )
-                    recipient_serializer.is_valid(raise_exception=True)
-                    recipient_serializer.save()
-                    return Response(
-                            {
-                                "recipients": recipient_serializer.data,
-                                "message": "Recipients updated successfully."
-                            },
-                            status=status.HTTP_200_OK
-                        )
+    #         if recipient_id:  # Update existing recipient
+    #             try:
+    #                 recipient_instance = existing_recipients.get(id=recipient_id)
+    #                 recipient_serializer = RecipientSerializer(
+    #                     instance=recipient_instance,
+    #                     data=recipient_data,
+    #                     partial=partial
+    #                 )
+    #                 recipient_serializer.is_valid(raise_exception=True)
+    #                 recipient_serializer.save()
+    #                 return Response(
+    #                         {
+    #                             "recipients": recipient_serializer.data,
+    #                             "message": "Recipients updated successfully."
+    #                         },
+    #                         status=status.HTTP_200_OK
+    #                     )
 
-                except Recipient.DoesNotExist:
-                    return Response(
-                        {"error": f"Recipient with ID {recipient_id} does not exist."},
-                        status=status.HTTP_404_NOT_FOUND
-                    )
+    #             except Recipient.DoesNotExist:
+    #                 return Response(
+    #                     {"error": f"Recipient with ID {recipient_id} does not exist."},
+    #                     status=status.HTTP_404_NOT_FOUND
+    #                 )
            
 
 
@@ -200,8 +200,6 @@ class SingleDocumentAPI(APIView):
         
         
     
-    
-
 class SendDocumentToRecipient(APIView):
     def post(self, request, *args, **kwargs):
         serializer = SendDocumentSerializer(data=request.data, context={'request': request})

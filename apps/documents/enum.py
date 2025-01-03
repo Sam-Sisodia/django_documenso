@@ -57,6 +57,7 @@ class RecipientAuthType(str,Enum):
     SMS = "SMS"
     EMAIL = "EMAIL"
     OTP = "OTP"
+    NONE = "NONE"
     
     
     @classmethod

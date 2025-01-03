@@ -47,7 +47,8 @@ class ResponseDocumentGroupSerializer(serializers.ModelSerializer):
     group_recipients = RecipientSerializer(many=True,read_only=True) 
     class Meta:
         model = DocumentGroup
-        fields = ['id','title','documents', 'status', 'note',  'signing_type', 'subject', 'message','document_type',"group_recipients",
+        fields = ['id','title','documents', 'status', 'note',  'signing_type', 'subject', 'message','document_type',
+                  "group_recipients","expire_date",
                   "validity","days_to_complete","reminder_duration",   "auto_reminder",  'created_by', 'updated_by', 'created_by_date', 'updated_by_date' ]
         
         
@@ -60,7 +61,8 @@ class DocumentGroupSerializer(serializers.ModelSerializer):
     documents = DocumentSerializer(many=True, read_only=True)  
     class Meta:
         model = DocumentGroup
-        fields = ['id','title', 'status', 'note', 'documents', 'signing_type', 'subject', 'message', 'upload_documents',
+        fields = ['id','title', 'status', 'note', 'documents', 'signing_type', 'subject', 'message', 
+                  'upload_documents',"document_type","expire_date"
                    "validity","days_to_complete","reminder_duration",   "auto_reminder",]
         extra_kwargs = {
             'created_by': {'read_only': True},
@@ -176,13 +178,9 @@ class CreateDocumentFieldBulkSerializer(serializers.Serializer):
     document_group_id = serializers.IntegerField()
     fields = DocumentFieldSerializer(many=True)
     
-    
-    
-    
     def get_realted_instance(self,document_group_id,document_id):
         document_group_instance = DocumentGroup.objects.filter(id=document_group_id).first()
         return document_group_instance
-    
     
     
     def check_post_data(self,recipient_id,filed_id):
@@ -190,13 +188,11 @@ class CreateDocumentFieldBulkSerializer(serializers.Serializer):
 
         if not recipient_instance:
             raise ValidationError("Invaild recipient Id")
-        
-        
+
         filed_instance = Field.objects.filter(id=filed_id).first()
         if not filed_instance:
             raise ValidationError("Invaild Field Id")
         
-       
 
    
     def create(self, validated_data):
@@ -292,7 +288,16 @@ class SendDocumentSerializer(serializers.Serializer):
     def validate_document_group_id(self, value):
         if not DocumentGroup.objects.filter(id=value).exists():
             raise serializers.ValidationError("The specified document group does not exist.")
+    
+        #  Ensure there are associated DocumentField and Recipient entries
+        has_document_field = DocumentField.objects.filter(document_group=value)
+
+        if not has_document_field:
+            raise serializers.ValidationError("No related document fields found for this document group. Add fields")
+
         return value
+        
+     
     
     def get_document_group_instance(self,obj):
         instance = DocumentGroup.objects.get(id = obj)
@@ -344,3 +349,23 @@ class SendDocumentSerializer(serializers.Serializer):
         return validated_data
             
         
+        
+        
+        
+class GenerateOtpTokenSerializer(serializers.Serializer):
+    token = serializers.CharField(max_length=255, required=True)
+
+
+class VerifyOtpSerializer(serializers.Serializer):
+    otp = serializers.CharField(required=True)
+    token = serializers.CharField(max_length=255, required=True)
+
+
+
+# class GetSignDocumnetserializer(serializers.mo
+                                
+#                                 class DocumentSerializer(serializers.ModelSerializer):
+#     documentfield_document = Gropupdocumentfieldsresponse(many=True, read_only=True) 
+#     class Meta:
+#         model = Document
+#         fields = ['id', 'title',"file_data",'documentfield_document']

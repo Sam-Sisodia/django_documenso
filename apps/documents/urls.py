@@ -15,8 +15,12 @@ urlpatterns = [
     path('remove-recipient/<int:grp_id>/<int:rec_id>/', views.RemoveRecipientsAPI.as_view(), name='remove-recipient'),
     path('recipient-updated-document/', views.RecipientUpdatedDocumentAPI.as_view(), name='recipient-updated-document'),
     path('send-documents/', views.SendDocumentToRecipient.as_view(), name='send-documents'),
+    path('generate-otp/<str:token>/', views.GenerateOTPAPI.as_view(), name='generate-otp'),
+    path('verify-otp/<str:token>', views.VerifyOTPAPI.as_view(), name='verify-otp'),
     path('recipient/<str:token>/', views.RecipientSignGetProgressDocumentAPI.as_view(), name='sign-recipient'),
     
+    
+        
   
     
 ]+ router.urls

@@ -27,7 +27,6 @@ class SigningType(str, Enum):
     SEQUENTIAL = "SEQUENTIAL"
     @classmethod
     def choices(cls):
-     
         return tuple((i.name, i.value) for i in cls)
  
  
@@ -64,23 +63,16 @@ class RecipientAuthType(str,Enum):
     def choices(cls):
         return tuple((i.name, i.value) for i in cls)
 
-    
-    
-    
-    
 
-# export const FieldType= {
-#     "SIGNATURE":"SIGNATURE",
-#     "NAME":"NAME",
-#     "INITIALS":"INITIALS",
-#     "EMAIL":"EMAIL",
-#     "NUMBER":"NUMBER",
-#     "RADIO":"RADIO",
-#     "CHECKBOX":"CHECKBOX",
-#     "DROPDOWN":"DROPDOWN",
-#     "DATE":"DATE",
-#     "TEXT":"TEXT",
-#     "FREE_SIGNATURE":"FREE_SIGNATURE"
+# {   "token_group_time": "15 days",
+#     "token not found": "invaild token",
+#     "already_sign": "",
+#     "sign_order",
+#     "auth tytpe= NONE,
+#     "otp", (INPU JWT) -HEADER COMEING,
+     
+ 
+    
 # }
  
 

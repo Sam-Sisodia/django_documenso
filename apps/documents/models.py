@@ -10,6 +10,10 @@ from django.utils.timezone import now
 
 from datetime import timedelta
 
+from django.core.exceptions import ValidationError
+from django.db import models
+from datetime import date
+import random
 class Field(models.Model):
     name = models.CharField(max_length=30)  
 
@@ -41,12 +45,29 @@ class DocumentGroup(TimeStampModel):
     document_type =  models.CharField(  max_length=50, choices=DocumentType.choices(), default=DocumentType.DOCUMENT )
     validity = models.CharField(  max_length=50, choices=DocumentValidity.choices(), default=DocumentValidity.NO_EXPIRY,
                     help_text="The validity type of the document (DOCUMENT or Date)."    )
+    expire_date = models.DateField(null=True,blank=True)
     days_to_complete = models.PositiveIntegerField( null=True, blank=True,
                     help_text="Number of days allowed to complete the document (optional)."    )
     reminder_duration = models.PositiveIntegerField( null=True,   blank=True, help_text="Number of days between reminders (optional)."  )
     auto_reminder = models.BooleanField(default=False,  help_text="Whether to automatically send reminders (True/False)." )
     
     documents = models.ManyToManyField( 'Document', related_name='groups_documents',   blank=True  )
+    
+    
+    # def clean(self):
+    #     # Ensure expire_date is required if validity is DATE
+    #     if self.validity == DocumentValidity.DATE and not self.expire_date:
+    #         raise ValidationError("expire_date is required when validity is set to DATE.")
+
+    #     # Ensure expire_date is in the future if provided
+    #     if self.expire_date and self.expire_date <= date.today():
+    #         raise ValidationError("expire_date must be in the future.")
+        
+    #     super().clean()
+
+    # def save(self, *args, **kwargs):
+    #     self.clean()  # Validate before saving
+    #     super().save(*args, **kwargs)
 
     
     def __str__(self):
@@ -99,7 +120,6 @@ class DocumentField(TimeStampModel):
 
 
 
-
 class DocumentSharedLink(TimeStampModel):
     document_group = models.ForeignKey(
         'DocumentGroup',
@@ -117,16 +137,26 @@ class DocumentSharedLink(TimeStampModel):
     )
     token = models.CharField(max_length=255, null=True, blank=True,unique=True)
     created_at = models.DateTimeField(default=now)
-    is_send = models.BooleanField(default=False)
+    is_send_to_recipient = models.BooleanField(default=False)
     otp = models.CharField(max_length=6, blank=True, null=True)
-    otp_expiry = models.DateTimeField(null=True, blank=True)
+    otp_verified = models.BooleanField(default=False)
+   
     
     def generate_otp(self):
         """Generate OTP and set expiration time."""
-        
-        self.otp = "123456"  # Replace with actual OTP generation logic
+        self.otp = random.randint(100000,999999)  # Replace with actual OTP generation logic
         self.otp_expiry = now() + timedelta(minutes=5)  # OTP expires in 5 minutes
         self.save()
+        return self.otp
+    
+    
+    def verify_otp(self, otp):
+        """Verify the provided OTP."""
+        if self.otp == otp:
+            self.otp_verified = True
+            self.save()
+            return True
+        return False
         
         
     def is_otp_valid(self, otp):

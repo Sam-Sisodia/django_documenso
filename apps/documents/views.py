@@ -5,7 +5,7 @@ from  apps.documents.models import Field,DocumentGroup,Document,Recipient,Docume
 
 from rest_framework import viewsets
 from rest_framework import generics
-from apps.documents.serializers import FieldsSerializer,DocumentGroupSerializer,DocumentsRecipientSerializer,RecipientSerializer,ResponseDocumentGroupSerializer,CreateDocumentFieldBulkSerializer,SingleDocumentSerializerResponse,UpdateDocumentsFieldsSerilalizer,SendDocumentSerializer
+from apps.documents.serializers import FieldsSerializer,DocumentGroupSerializer,DocumentsRecipientSerializer,RecipientSerializer,ResponseDocumentGroupSerializer,CreateDocumentFieldBulkSerializer,SingleDocumentSerializerResponse,UpdateDocumentsFieldsSerilalizer,SendDocumentSerializer,GenerateOtpTokenSerializer,VerifyOtpSerializer
 from django.db.models import Q
 from typing import List
 from rest_framework.response import Response
@@ -18,6 +18,12 @@ from django.utils.timezone import now
 import re
 from apps.utils.utils import modify_pdf
 from rest_framework.exceptions import NotFound
+from django.contrib.auth import get_user_model
+from apps.documents.email import send_otp_to_mail
+from apps.documents.enum import DocumentValidity
+from datetime import date, timedelta
+
+User = get_user_model() 
 class DocumentFieldAPI(viewsets.ModelViewSet):
     serializer_class = FieldsSerializer
     http_method_names: List[str] = ["get", "post"]
@@ -138,8 +144,6 @@ class DocumentFieldCreateAPIView(APIView):
             return Response({"message": "Document field deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
             return Response({"message": "An error occurred while deleting the document field."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    
     
 class GetRecipientsDocuments(APIView):
     def get(self, request, document_group_id, *args, **kwargs):
@@ -152,7 +156,6 @@ class GetRecipientsDocuments(APIView):
             raise NotFound(detail="DocumentGroup not found")
         
         
- 
 class SendDocumentToRecipient(APIView):
     def post(self, request, *args, **kwargs):
         serializer = SendDocumentSerializer(data=request.data, context={'request': request})
@@ -163,44 +166,89 @@ class SendDocumentToRecipient(APIView):
         
     
     
-    
 
+class GenerateOTPAPI(APIView):
+    permission_classes = []
+    def post(self, request, *args, **kwargs):
+        serializer = GenerateOtpTokenSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            token = serializer.validated_data.get('token')
+            try:
+                document_group = DocumentSharedLink.objects.get(token=token)
+                email = document_group.recipient.email
+                otp = document_group.generate_otp()
+                send_otp_to_mail(email,otp)
+                return Response({"message": "OTP generated and sent successfully on your email."}, status=status.HTTP_201_CREATED)
+            
+            except DocumentSharedLink.DoesNotExist:
+                raise NotFound(detail="Invalid token or document not found.")
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    
+    
+    
+class VerifyOTPAPI(APIView):
+    permission_classes = []
+    def post(self, request, *args, **kwargs):
+        serializer = VerifyOtpSerializer(data=request.data)
+        if serializer.is_valid():
+            token = serializer.validated_data.get('token')
+            otp = serializer.validated_data.get('otp')
+            try:
+                document_shared_link = DocumentSharedLink.objects.get(token=token)               
+                if document_shared_link.verify_otp(otp):
+                    return Response({"message": "OTP verified successfully."}, status=status.HTTP_200_OK)
+                else:
+                    return Response({"error": "Invalid or expired OTP."}, status=status.HTTP_400_BAD_REQUEST)
+
+            except DocumentSharedLink.DoesNotExist:
+                raise NotFound(detail="Invalid token or document not found.")
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+def recipients_response(document_group):
+     
+    if date.today() > document_group.document_group.expire_date:
+            return {"message": "The document group has expired.", "status":101}
+        
+        
+    # Check if the document group has expired based on days_to_complete
+    if document_group.days_to_complete:
+        creation_date = document_group.created_at.date()  # Assuming `created_at` is a DateTimeField
+        expiration_date = creation_date + timedelta(days=document_group.days_to_complete)
+        
+        if date.today() > expiration_date:
+            return {"message": "The document group has expired based on days to complete.", "status": 102}
+        else:
+            remaining_days = (expiration_date - date.today()).days
+            return {
+                "message": f"The document group is still valid. {remaining_days} days remaining.",
+                "status": 200
+            }
+    
+    
 class RecipientSignGetProgressDocumentAPI(APIView):
+    permission_classes = []
+
     def get(self, request, token, *args, **kwargs):
         try:
+            # Fetch the DocumentSharedLink object
             document_group = DocumentSharedLink.objects.get(token=token)
-            # Check OTP status
-            otp_status = None
-            if document_group.otp_expiry and document_group.otp_expiry < now():
-                otp_status = "expired"  # OTP expired, prompt user to regenerate it
-
-            # Return the document and OTP status
-            serializer = ResponseDocumentGroupSerializer(document_group.document_group)
-            return Response({
-                "document": serializer.data,
-                "otp_status": otp_status,
-                "otp_expiry": document_group.otp_expiry,  # Return expiry time for frontend
-            })
+            authenticate_user = document_group.recipient.email
         
+            if document_group.document_group.validity == DocumentValidity.DATE.name:
+            
+                response = recipients_response(document_group)
+                if response["status"] !=200:
+                    return Response(response)
+                    print("++++++++++++++++++",document_group.document_group.document_type)
+                
+            
         except DocumentSharedLink.DoesNotExist:
-            raise NotFound(detail="DocumentSharedLink not found")
-    
-    def post(self, request, token, *args, **kwargs):
-        """Generate or refresh OTP if expired."""
-        try:
-            document_group = DocumentSharedLink.objects.get(token=token)
-
-            # If OTP expired, regenerate it
-            if document_group.otp_expiry and document_group.otp_expiry < now():
-                document_group.generate_otp()
-                # Optionally, send the OTP to the user via email/SMS
-                return Response({"message": "OTP has expired. A new OTP has been sent."})
-
-            # If OTP is still valid, do not regenerate
-            return Response({"message": "OTP is still valid."})
-        
-        except DocumentSharedLink.DoesNotExist:
-            raise NotFound(detail="DocumentSharedLink not found")
+            # Handle the case where the document group doesn't exist
+            raise NotFound(detail="Invalid token or document group not found.")
 
         
     

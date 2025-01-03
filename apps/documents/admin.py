@@ -29,6 +29,7 @@ class DocumentGroup(admin.ModelAdmin):
                 "message",
                 "subject",
                 "document_type",
+                "expire_date",
                 "get_documents",
                 "get_recipients",
                 "validity",
@@ -79,7 +80,7 @@ class DocumentFieldadmin(admin.ModelAdmin):
                     "height",
                     "page_no",                 
                     "created_by",
-                
+
                     ]
 
 @admin.register(DocumentSharedLink)
@@ -88,9 +89,9 @@ class DocumentSharedLinkadmin(admin.ModelAdmin):
                     "document_group",
                     "recipient",
                     "token",
-                    "is_send",
+                    "is_send_to_recipient",
                     "otp",
-                    "otp_expiry",
+                    "otp_verified",
                     "created_at",                
                     "created_by",
                     ]

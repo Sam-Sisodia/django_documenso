@@ -22,6 +22,7 @@ def create_default_fields(sender, **kwargs):
     
     # Only insert the default values if they don't already exist
     for field_name in default_fields:
+        print("+++++++++++++++++++++")
         # Check if the field already exists
         if not Field.objects.filter(name=field_name).exists():
             # Create the field if it does not exist

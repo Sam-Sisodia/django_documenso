@@ -13,7 +13,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 import base64
 import os
-from django.utils.timezone import now
+
 
 import re
 from apps.utils.utils import modify_pdf
@@ -23,6 +23,7 @@ from apps.documents.email import send_otp_to_mail
 from apps.documents.enum import DocumentValidity
 from datetime import date, timedelta
 from rest_framework.exceptions import NotFound, APIException
+from apps.documents.utils import recipients_response
 
 User = get_user_model() 
 class DocumentFieldAPI(viewsets.ModelViewSet):
@@ -176,6 +177,7 @@ class GenerateOTPAPI(APIView):
             token = serializer.validated_data.get('token')
             try:
                 document_group = DocumentSharedLink.objects.get(token=token)
+                print(document_group,"ksjkdjkdjdkjdskjdskjdsjdsjdjk")
                 email = document_group.recipient.email
                 otp = document_group.generate_otp()
                 send_otp_to_mail(email,otp)
@@ -209,20 +211,8 @@ class VerifyOTPAPI(APIView):
 
 
 
-def recipients_response(document_group):
-    if not document_group.otp:
-        return {"message": "Otp required click on generate OTP .", "status":100}
-    
-    
-    if document_group.document_group.validity == DocumentValidity.DATE.name and date.today() > document_group.document_group.expire_date:
-        return {"message": "The document group has expired.", "status":101}
-    
-    if Recipient.objects.filter(document_group=document_group.document_group,is_recipient_sign=True):
-        return {"message": "You already sign That documenet", "status":102}
-    
-    return {"message": "Document is Vaild you can  sign", "status":200}
-        
 
+    
 
 class RecipientSignGetProgressDocumentAPI(APIView):
     permission_classes = []

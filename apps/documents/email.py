@@ -16,7 +16,7 @@ def recipientsmail(request,document_links, subject, message):
     for link in document_links:
         receiver_email = link["email"]
         token = link["token"]
-        url = f"{base_url}/{token}"
+        url = f"{base_url}{token}"
         note = f"\n\nNote: {link.get('note')}" if 'note' in link and link['note'] else ""
         email_body = f"{message}\n\nClick on the link to open the document: {url} \n\n{note}"
         msg = MIMEText(email_body)
@@ -49,7 +49,7 @@ def send_otp_to_mail(email,otp):
             server.starttls()
             server.login(smtp_user, smtp_password)
             server.sendmail(sender_email, receiver_email, msg.as_string())
-            print("Email Send...")
+            print("Email Send...",receiver_email)
         
     except Exception as e:
         {"recipient": receiver_email, "status": f"Failed to send email: {e}"}

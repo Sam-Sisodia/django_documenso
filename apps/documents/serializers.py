@@ -195,7 +195,7 @@ class CreateDocumentFieldBulkSerializer(serializers.Serializer):
         recipient_instance = Recipient.objects.filter(id=recipient_id).first()
 
         if not recipient_instance:
-            raise ValidationError("Invaild recipient Id")
+            raise serializers.ValidationError("Invaild recipient Id add some recipient in your document")
 
         filed_instance = Field.objects.filter(id=filed_id).first()
         if not filed_instance:
@@ -262,15 +262,16 @@ class SendDocumentSerializer(serializers.Serializer):
     message = serializers.CharField(max_length=1000, required=False)
 
     def validate_document_group_id(self, value):
+        
         if not DocumentGroup.objects.filter(id=value).exists():
             raise serializers.ValidationError("The specified document group does not exist.")
     
         #  Ensure there are associated DocumentField and Recipient entries
         has_document_field = DocumentField.objects.filter(document_group=value)
-
+        
         if not has_document_field:
             raise serializers.ValidationError("No related document fields found for this document group. Add fields")
-
+        
         return value
         
      
@@ -283,7 +284,7 @@ class SendDocumentSerializer(serializers.Serializer):
     def is_document_share(self,ids):
         obj = DocumentSharedLink.objects.filter(id__in= ids)
         for id in obj:
-            id.is_send = True
+            id.is_send_to_recipient = True
             id.save()
     
     def create(self, validated_data):
@@ -386,7 +387,6 @@ class GetRecipientGroupData(serializers.ModelSerializer):
 
 class GetSignRecipientDocumentFields(serializers.ModelSerializer):
     document_group = GetRecipientGroupData(read_only=True)
-
     class Meta:
         model = Recipient
         fields = [

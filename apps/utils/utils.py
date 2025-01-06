@@ -5,49 +5,86 @@ from reportlab.lib.utils import ImageReader
 import io
 import os
 from reportlab.pdfgen import canvas
+import base64
+import re
 
-def modify_pdf(positionX, positionY, page_number, pdf_bytes, is_image, value):
+def checkvalue_type(string):
+    try:
+        base64.b64decode(string)
+        return bool(re.match(r'^[A-Za-z0-9+/=]+$', string))
+    except Exception:
+        return False
+
+
+def update_pdf_add_values(pdf_bytes, completed_field_details):
     pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
     pdf_writer = PdfWriter()
-    packet = io.BytesIO()
 
-    if is_image:
-        packet = io.BytesIO()
-        c = canvas.Canvas(packet)
-        image = Image.open(io.BytesIO(value))
-                    # Convert image to an in-memory image object
-        image_stream = io.BytesIO()
-        image.save(image_stream, format="PNG")
-        image_stream.seek(0)
-        image_reader = ImageReader(image_stream)
-       
-        c.drawImage(image_reader, positionX, positionY, width=image.width / 2, height=image.height / 2)  # Adjust size as needed
-        c.save()
-     
-    else:
-        # Create a canvas for adding text
-        c = canvas.Canvas(packet, pagesize=letter)
-        c.setFont("Helvetica", 20)
-        c.drawString(positionX, positionY, value)
-        c.save()
+    # Group fields by page number
+    fields_by_page = {}
+    for value in completed_field_details:
+        page_number = int(value.get('page_no'))
+        if page_number not in fields_by_page:
+            fields_by_page[page_number] = []
+        fields_by_page[page_number].append(value)
 
-    packet.seek(0)
-    temp_pdf_reader = PdfReader(packet)
-
+    # Loop through each page
     for page_num in range(len(pdf_reader.pages)):
         page = pdf_reader.pages[page_num]
-        if page_num == page_number - 1:  # page_number is 1-indexed
-            overlay_page = temp_pdf_reader.pages[0]
-            page.merge_page(overlay_page)  
 
+        # If there are fields for this page, create an overlay
+        if page_num + 1 in fields_by_page:
+            packet = io.BytesIO()
+            c = canvas.Canvas(packet, pagesize=letter)
+
+            for value in fields_by_page[page_num + 1]:
+                value_text = value.get("value")
+                positionX = float(value.get("position_x"))
+                positionY = float(value.get("position_y"))
+                height = float(value.get("height"))  # )Correct key for height
+                width = float(value.get("width"))
+
+             # Check if the field value is an image (Base64 encoded)
+                is_image = False
+                if checkvalue_type(value_text):
+                    value_text = base64.b64decode(value_text)
+                    is_image = True
+
+                # Add image or text depending on the type
+                if is_image:
+                    image = Image.open(io.BytesIO(value_text))
+                    image_stream = io.BytesIO()
+                    image.save(image_stream, format="PNG")
+                    image_stream.seek(0)
+                    image_reader = ImageReader(image_stream)
+                    c.drawImage(image_reader, positionX, positionY, width, height)
+                else:
+                    c.setFont("Helvetica", 20)
+                    c.drawString(int(positionX), int(positionY), value_text)
+
+            c.save()
+
+            # Reset packet and read the content to overlay
+            packet.seek(0)
+            temp_pdf_reader = PdfReader(packet)
+            overlay_page = temp_pdf_reader.pages[0]
+            page.merge_page(overlay_page)  # Merge overlay content to this page
+
+        # Add the page to the writer (whether modified or not)
         pdf_writer.add_page(page)
 
+    # Save the updated PDF to a file
+    if os.getenv("IS_DOWNLOAD") ==True:
+    
+        output_path = os.path.join(os.getcwd(), 'sajal_signed.pdf')
+        with open(output_path, "wb") as output_file:
+            pdf_writer.write(output_file)
 
-    output_path = os.path.join(os.getcwd(), 'sajal_signed.pdf')
-    with open(output_path, "wb") as output_file:
-        pdf_writer.write(output_file)
-
-    return {"message": "Document updated successfully"}
-
-
+        return {"message": "Document updated successfully"}
+    
+    output_stream = io.BytesIO()
+    pdf_writer.write(output_stream)
+    output_stream.seek(0)
+    pdf_base64 = base64.b64encode(output_stream.read()).decode('utf-8')
+    return {"message": "Document updated successfully", "data": pdf_base64}
 

@@ -13,10 +13,8 @@ from rest_framework import status
 from rest_framework.views import APIView
 import base64
 import os
-
-
 import re
-from apps.utils.utils import modify_pdf
+# from apps.utils.utils import modify_pdf
 from rest_framework.exceptions import NotFound
 from django.contrib.auth import get_user_model
 from apps.documents.email import send_otp_to_mail
@@ -24,6 +22,7 @@ from apps.documents.enum import DocumentValidity
 from datetime import date, timedelta
 from rest_framework.exceptions import NotFound, APIException
 from apps.documents.utils import recipients_response
+from apps.utils.utils import update_pdf_add_values
 
 User = get_user_model() 
 class DocumentFieldAPI(viewsets.ModelViewSet):
@@ -232,8 +231,6 @@ class RecipientSignGetProgressDocumentAPI(APIView):
             if not recipient_obj:
                 raise NotFound(detail="Recipient not found in the specified document group.")
 
-          
-
             serializer = GetSignRecipientDocumentFields(
                 recipient_obj, 
                 context={'document_group': document_group.id, 'recipient_id': recipient.id}
@@ -277,7 +274,7 @@ class SignUpdateRecipientsFieldValueAPI(APIView):
         document_field = data['document_field']
         recipient = data['recipient']
         document_group = data["document_group"]
-        print("++++++++++++++",recipient.email)
+       
         
         
 
@@ -288,24 +285,39 @@ class SignUpdateRecipientsFieldValueAPI(APIView):
         incomplete_fields = recipient.documentfield_recipient.filter(value__isnull=True,document_group=document_group)
         if not incomplete_fields.exists():
             document_group = recipient.document_group
-            print(document_group)
-            document_group.status = "COMPLETED"  
-            document_group.save()
+            # print(document_group)
+            # document_group.status = "COMPLETED"  
+            # document_group.save()
             completed_fields = recipient.documentfield_recipient.filter(value__isnull=False, document_group=document_group)
             completed_field_details = [
                 {
-                
                     "value": field.value,
                     "position_x": field.positionX,
                     "position_y": field.positionY,
                     "width": field.width,
-                    "height": field.height
+                    "height": field.height,
+                    'page_no': field.page_no,
+                    "document_id":field.document.id,
+                
                 }
                 for field in completed_fields
             ]
-            print(completed_field_details)
+            document_ids = set(field['document_id'] for field in completed_field_details)       
+            doc_id = list(document_ids)[0]
             recipient.is_recipient_sign =True
             recipient.save()
+            
+            
+            file_obj =  Document.objects.get(id=doc_id)
+            pdf_bytes = base64.b64decode(file_obj.file_data) 
+            
+            updated_document = update_pdf_add_values(pdf_bytes,completed_field_details)
+            if "data" in updated_document:
+                file_obj.updated_file_data = updated_document["data"]
+                file_obj.save()
+            
+            
+            
             
             
             return Response({
@@ -322,6 +334,12 @@ class SignUpdateRecipientsFieldValueAPI(APIView):
         
         
         
+    
+
+        
+        
+        
+        
         
 
 class RecipientUpdatedDocumentAPI(APIView):
@@ -334,34 +352,34 @@ class RecipientUpdatedDocumentAPI(APIView):
         except Exception:
             return False
         
-    def get(self, request, *args, **kwargs):
-        try:
-            document_group = Document.objects.get(id=9)
-            pdf_bytes = base64.b64decode(document_group.file_data) 
+    # def get(self, request, *args, **kwargs):
+    #     try:
+    #         document_group = Document.objects.get(id=9)
+    #         pdf_bytes = base64.b64decode(document_group.file_data) 
 
-            # Fetch the signed document (image) from the database
-            sign = Document.objects.get(id=10)
-            value = sign.file_data
-            positionX = 60
-            positionY = 60
-            page_number =1
+    #         # Fetch the signed document (image) from the database
+    #         sign = Document.objects.get(id=10)
+    #         value = sign.file_data
+    #         positionX = 60
+    #         positionY = 60
+    #         page_number =1
             
-            if self.is_base64(value):
-                value = base64.b64decode(value)
-                is_image = True
-                modify_pdf(positionX,positionY,page_number,pdf_bytes,is_image,value)
-                # pass
-            else:
-                is_image = False
-                modify_pdf(positionX,positionY,page_number,pdf_bytes,is_image,value)
+    #         if self.is_base64(value):
+    #             value = base64.b64decode(value)
+    #             is_image = True
+    #             modify_pdf(positionX,positionY,page_number,pdf_bytes,is_image,value)
+    #             # pass
+    #         else:
+    #             is_image = False
+    #             modify_pdf(positionX,positionY,page_number,pdf_bytes,is_image,value)
 
-            context = {
-                "message": "Your document has been updated successfully."
-            }
-            return Response(context)
+    #         context = {
+    #             "message": "Your document has been updated successfully."
+    #         }
+    #         return Response(context)
 
-        except Document.DoesNotExist:
-            raise Response("Document not found")
+    #     except Document.DoesNotExist:
+    #         raise Response("Document not found")
 
 
 

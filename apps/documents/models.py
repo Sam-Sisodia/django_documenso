@@ -53,7 +53,7 @@ class DocumentGroup(TimeStampModel):
     reminder_duration = models.PositiveIntegerField( null=True,   blank=True, help_text="Number of days between reminders (optional)."  )
     auto_reminder = models.BooleanField(default=False,  help_text="Whether to automatically send reminders (True/False)." )
     
-    documents = models.ManyToManyField( 'Document', related_name='groups_documents',   blank=True  )
+    documents = models.ManyToManyField('Document', related_name='groups_documents',   blank=True  )
     
     
     def __str__(self):
@@ -87,7 +87,7 @@ class Recipient(TimeStampModel):
     
 class DocumentField(TimeStampModel):
 
-    value = models.CharField(max_length=255, null=True, blank=True)
+    value = models.TextField(null=True, blank=True)
     positionX = models.CharField(max_length=255, null=True, blank=True)
     positionY = models.CharField(max_length=255, null=True, blank=True)
     width = models.CharField(max_length=255, null=True, blank=True)

@@ -4,6 +4,7 @@ from rest_framework.exceptions import ValidationError
 import base64
 from apps.documents.email import recipientsmail
 import uuid
+from apps.documents.enum import DocumentValidity
 from apps.documents.enum import RecipientAuthType,SigningType,DocumentStatus 
 class FieldsSerializer(serializers.ModelSerializer):
     name = serializers.CharField(required=True)  # Define the 'name' field
@@ -62,7 +63,7 @@ class DocumentGroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = DocumentGroup
         fields = ['id','title', 'status', 'note', 'documents', 'signing_type', 'subject', 'message', 
-                  'upload_documents',"document_type","expire_date"
+                  'upload_documents',"document_type","expire_date",
                    "validity","days_to_complete","reminder_duration",   "auto_reminder",]
         extra_kwargs = {
             'created_by': {'read_only': True},
@@ -70,7 +71,14 @@ class DocumentGroupSerializer(serializers.ModelSerializer):
             'created_at': {'read_only': True},
             'updated_at': {'read_only': True},
         }
-
+        
+        
+    def validate(self, attrs):
+        validity = attrs.get("validity")
+        if validity == DocumentValidity.DATE.name and not attrs.get("expire_date"):
+            raise ValidationError("If validity is 'DATE', please add the expire date")
+        return attrs
+    
     def create(self, validated_data):
         uploaded_files = validated_data.pop('upload_documents', [])
         user = self.context['request'].user

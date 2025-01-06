@@ -1,6 +1,4 @@
 
-
-
 from django.db.models.signals import post_migrate
 from django.dispatch import receiver
 from apps.documents.models import Field
@@ -24,7 +22,6 @@ def create_default_fields(sender, **kwargs):
     
     # Only insert the default values if they don't already exist
     for field_name in default_fields:
-   
         # Check if the field already exists
         if not Field.objects.filter(name=field_name).exists():
             # Create the field if it does not exist

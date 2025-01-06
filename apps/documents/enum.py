@@ -43,7 +43,7 @@ class DocumentType(str, Enum):
  
 class DocumentValidity(str, Enum):
     NO_EXPIRY = "NO_EXPIRY"
-    DATE = "Date"
+    DATE = "DATE"
     
 
     @classmethod

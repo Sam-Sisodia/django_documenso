@@ -2,7 +2,6 @@ from email.mime.text import MIMEText
 import os
 import smtplib
 
-
 sender_email = os.getenv("SENDER_EMAIL")
 smtp_server = os.getenv("SMTP_SERVER")
 smtp_port = os.getenv("SMTP_PORT")

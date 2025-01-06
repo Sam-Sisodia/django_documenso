@@ -5,7 +5,7 @@ from  apps.documents.models import Field,DocumentGroup,Document,Recipient,Docume
 
 from rest_framework import viewsets
 from rest_framework import generics
-from apps.documents.serializers import FieldsSerializer,DocumentGroupSerializer,DocumentsRecipientSerializer,RecipientSerializer,ResponseDocumentGroupSerializer,CreateDocumentFieldBulkSerializer,UpdateDocumentsFieldsSerilalizer,SendDocumentSerializer,GenerateOtpTokenSerializer,VerifyOtpSerializer,GetSignRecipientDocumentFields
+from apps.documents.serializers import FieldsSerializer,DocumentGroupSerializer,DocumentsRecipientSerializer,RecipientSerializer,ResponseDocumentGroupSerializer,CreateDocumentFieldBulkSerializer,UpdateDocumentsFieldsSerilalizer,SendDocumentSerializer,GenerateOtpTokenSerializer,VerifyOtpSerializer,GetSignRecipientDocumentFields,SignRecipientsFieldValueSerializer
 from django.db.models import Q
 from typing import List
 from rest_framework.response import Response
@@ -257,6 +257,72 @@ class RecipientSignGetProgressDocumentAPI(APIView):
 
         
     
+
+
+
+
+class SignUpdateRecipientsFieldValueAPI(APIView):
+    """
+    Updates the value of a field and checks if all fields assigned to the recipient are completed.
+    """
+
+    def post(self, request):
+        serializer = SignRecipientsFieldValueSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # Extract validated data
+      
+        data = serializer.validated_data
+        document_field = data['document_field']
+        recipient = data['recipient']
+        document_group = data["document_group"]
+        print("++++++++++++++",recipient.email)
+        
+        
+
+        # Update the field value
+        document_field.value = data['value']
+        document_field.save()
+
+        incomplete_fields = recipient.documentfield_recipient.filter(value__isnull=True,document_group=document_group)
+        if not incomplete_fields.exists():
+            document_group = recipient.document_group
+            print(document_group)
+            document_group.status = "COMPLETED"  
+            document_group.save()
+            completed_fields = recipient.documentfield_recipient.filter(value__isnull=False, document_group=document_group)
+            completed_field_details = [
+                {
+                
+                    "value": field.value,
+                    "position_x": field.positionX,
+                    "position_y": field.positionY,
+                    "width": field.width,
+                    "height": field.height
+                }
+                for field in completed_fields
+            ]
+            print(completed_field_details)
+            recipient.is_recipient_sign =True
+            recipient.save()
+            
+            
+            return Response({
+                "status": "success",
+                "message": "All fields are completed. Document is marked as completed."
+            }, status=status.HTTP_200_OK)
+
+        return Response({
+            "status": "incomplete",
+            "message": "Fileds update Sucessfully , Some fields are still incomplete.",
+            "incomplete_fields": [{"field_id": f.id, "field_name": f.field.name} for f in incomplete_fields]
+        }, status=status.HTTP_200_OK)
+        
+        
+        
+        
+        
 
 class RecipientUpdatedDocumentAPI(APIView):
     def is_base64(self, string):

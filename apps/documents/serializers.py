@@ -393,3 +393,42 @@ class GetSignRecipientDocumentFields(serializers.ModelSerializer):
             'id', 'name', 'email', 'role', 'note', 'order', 'auth_type',
             'is_recipient_sign', 'document_group',"documentfield_recipient",
         ]
+        
+        
+#################################################################################################################################
+
+class SignRecipientsFieldValueSerializer(serializers.Serializer):
+    value = serializers.CharField(required=True)
+    width = serializers.CharField(required=False, allow_blank=True)
+    height = serializers.CharField(required=False, allow_blank=True)
+    token = serializers.CharField(required=True)
+    field_id = serializers.IntegerField(required=True)
+    document_id = serializers.IntegerField(required=True)
+    
+    
+    def validate(self,data):
+        try: 
+            shared_link = DocumentSharedLink.objects.get(token=data['token'],otp_verified=True,otp__isnull=False)
+            data['recipient'] = shared_link.recipient
+            
+            data['document_group'] = shared_link.document_group
+            
+            if Recipient.objects.filter(id= data['recipient'].id,document_group=data['document_group'].id,is_recipient_sign=True):
+                raise serializers.ValidationError({"message": "You already Sign that document"})
+                
+        
+        except DocumentSharedLink.DoesNotExist:
+            raise serializers.ValidationError({"token": "Invalid token. OTP is not verified"})
+        try:
+            document_field = DocumentField.objects.get(
+                id=data['field_id'],
+                document_id=data['document_id'],
+                recipient=data['recipient'],
+                document_group = data['document_group']
+            )
+            data['document_field'] = document_field
+        except DocumentField.DoesNotExist:
+            raise serializers.ValidationError({"field_id": "Invalid field ID or document ID."})
+
+        return data
+

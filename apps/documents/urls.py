@@ -17,9 +17,6 @@ urlpatterns = [
     path('generate-otp/<str:token>/', views.GenerateOTPAPI.as_view(), name='generate-otp'),
     path('verify-otp/<str:token>', views.VerifyOTPAPI.as_view(), name='verify-otp'),
     path('get-sign-recipient-document/<str:token>/', views.RecipientSignGetProgressDocumentAPI.as_view(), name='sign-recipient'),
-    
-    
-        
+    path('sign-recipient-document/', views.SignUpdateRecipientsFieldValueAPI.as_view(), name='sign-recipient-document'),
   
-    
 ]+ router.urls

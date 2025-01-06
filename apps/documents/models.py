@@ -27,6 +27,8 @@ class Field(models.Model):
 class Document(TimeStampModel):
     title = models.CharField(max_length=255)  
     file_data = models.TextField(null=True, blank=True) 
+    updated_file_data = models.TextField(null=True, blank=True) 
+    
   
     def __str__(self):
         return self.title

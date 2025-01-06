@@ -50,7 +50,7 @@ class ResponseDocumentGroupSerializer(serializers.ModelSerializer):
         model = DocumentGroup
         fields = ['id','title','documents', 'status', 'note',  'signing_type', 'subject', 'message','document_type',
                   "group_recipients","expire_date",
-                  "validity","days_to_complete","reminder_duration",   "auto_reminder",  'created_by', 'updated_by', 'created_by_date', 'updated_by_date' ]
+                  "validity","days_to_complete",   "auto_reminder",  'created_by', 'updated_by', 'created_by_date', 'updated_by_date' ]
         
         
         
@@ -64,7 +64,7 @@ class DocumentGroupSerializer(serializers.ModelSerializer):
         model = DocumentGroup
         fields = ['id','title', 'status', 'note', 'documents', 'signing_type', 'subject', 'message', 
                   'upload_documents',"document_type","expire_date",
-                   "validity","days_to_complete","reminder_duration",   "auto_reminder",]
+                   "validity","days_to_complete",   "auto_reminder",]
         extra_kwargs = {
             'created_by': {'read_only': True},
             'updated_by': {'read_only': True},
@@ -250,38 +250,6 @@ class UpdateDocumentsFieldsSerilalizer(serializers.ModelSerializer):
             'updated_at': {'read_only': True},
         }
         
-####################################
-class DocumentRecipients(serializers.ModelSerializer):
-    class Meta:
-        model = Recipient
-        fields = ['id','name', 'email', 'role']
-   
-   
-class SingleDoc(serializers.ModelSerializer):
-    # recipients = DocumentRecipients(many=True)
-    class Meta:
-        model = DocumentGroup
-        fields = ['title', 'status', 'note',  'signing_type', 'subject', 'message','document_type',]
-           
-class FieldData(serializers.ModelSerializer):
-  class Meta:
-        model = Field
-        fields = ['id', 'name',]    
-class DocumentFieldSerializer(serializers.ModelSerializer):
-    field = FieldData(read_only=True) 
-    class Meta:
-        model = DocumentField
-        fields = ['id', 'document',"value","positionX","positionY","width","height","page_no","field"] 
-
-class SingleDocumentSerializerResponse(serializers.ModelSerializer):
-    documentfield_document = DocumentFieldSerializer(many=True, read_only=True)  
-    groups_documents = ResponseDocumentGroupSerializer(many=True)
-    class Meta:
-        model = Document
-        fields = ['id', 'title', 'file_data',"documentfield_document",'groups_documents']
-
-
-################################
 class DocumentSharedLinkSerializer(serializers.ModelSerializer):
     class Meta:
         model = DocumentSharedLink
@@ -363,17 +331,65 @@ class SendDocumentSerializer(serializers.Serializer):
 class GenerateOtpTokenSerializer(serializers.Serializer):
     token = serializers.CharField(max_length=255, required=True)
 
-
 class VerifyOtpSerializer(serializers.Serializer):
     otp = serializers.CharField(required=True)
     token = serializers.CharField(max_length=255, required=True)
 
 
 
-# class GetSignDocumnetserializer(serializers.mo
-                                
-#                                 class DocumentSerializer(serializers.ModelSerializer):
-#     documentfield_document = Gropupdocumentfieldsresponse(many=True, read_only=True) 
-#     class Meta:
-#         model = Document
-#         fields = ['id', 'title',"file_data",'documentfield_document']
+      
+########################################################################################################################################
+
+
+
+
+class FilteredDocumentFieldSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DocumentField
+        fields = ['id', 'value', 'positionX', 'positionY', 'width', 'height', 'page_no']
+
+class GetRecipientDocumentSerializer(serializers.ModelSerializer):
+    documentfield_document = serializers.SerializerMethodField() 
+
+    class Meta:
+        model = Document
+        fields = ['id', 'title', 'file_data', 'documentfield_document']
+        
+    def get_documentfield_document(self, obj):
+        document_group = self.context.get('document_group')
+        recipient_id = self.context.get('recipient_id')
+        if document_group and recipient_id:
+            document_fields = obj.documentfield_document.filter(
+                document_group_id=document_group,
+                recipient_id=recipient_id
+            )
+            return FilteredDocumentFieldSerializer(document_fields, many=True).data
+        return []
+
+class GetRecipientGroupData(serializers.ModelSerializer):
+    documents = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = DocumentGroup
+        fields = ['id', 'title', 'documents', 'status', 'note', 'signing_type', 'subject', 'message', 'document_type',
+                  "expire_date", "validity", "days_to_complete", "auto_reminder", 
+                  'created_by_date', 'updated_by_date']
+    
+    def get_documents(self, obj):
+        recipient_id = self.context.get('recipient_id')
+        documents = obj.documents.all()
+        return GetRecipientDocumentSerializer(
+            documents,
+            many=True,
+            context={'document_group': obj.id, 'recipient_id': recipient_id}
+        ).data
+
+class GetSignRecipientDocumentFields(serializers.ModelSerializer):
+    document_group = GetRecipientGroupData(read_only=True)
+
+    class Meta:
+        model = Recipient
+        fields = [
+            'id', 'name', 'email', 'role', 'note', 'order', 'auth_type',
+            'is_recipient_sign', 'document_group',
+        ]

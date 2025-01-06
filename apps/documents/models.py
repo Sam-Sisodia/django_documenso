@@ -54,22 +54,6 @@ class DocumentGroup(TimeStampModel):
     documents = models.ManyToManyField( 'Document', related_name='groups_documents',   blank=True  )
     
     
-    # def clean(self):
-    #     # Ensure expire_date is required if validity is DATE
-    #     if self.validity == DocumentValidity.DATE and not self.expire_date:
-    #         raise ValidationError("expire_date is required when validity is set to DATE.")
-
-    #     # Ensure expire_date is in the future if provided
-    #     if self.expire_date and self.expire_date <= date.today():
-    #         raise ValidationError("expire_date must be in the future.")
-        
-    #     super().clean()
-
-    # def save(self, *args, **kwargs):
-    #     self.clean()  # Validate before saving
-    #     super().save(*args, **kwargs)
-
-    
     def __str__(self):
         return self.title
 
@@ -83,7 +67,8 @@ class Recipient(TimeStampModel):
     document_group = models.ForeignKey('DocumentGroup', on_delete=models.CASCADE, related_name='group_recipients')
     note = models.TextField(null=True, blank=True)  
     order = models.IntegerField(default=0)  
-    auth_type = models.CharField( max_length=50,  choices=RecipientAuthType.choices(),     default=RecipientAuthType.NONE  )
+    auth_type = models.CharField( max_length=50,  choices=RecipientAuthType.choices(),     default=RecipientAuthType.NONE )
+    is_recipient_sign =  models.BooleanField(default=False)
     
   
     

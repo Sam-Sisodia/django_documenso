@@ -5,7 +5,7 @@ from  apps.documents.models import Field,DocumentGroup,Document,Recipient,Docume
 
 from rest_framework import viewsets
 from rest_framework import generics
-from apps.documents.serializers import FieldsSerializer,DocumentGroupSerializer,DocumentsRecipientSerializer,RecipientSerializer,ResponseDocumentGroupSerializer,CreateDocumentFieldBulkSerializer,SingleDocumentSerializerResponse,UpdateDocumentsFieldsSerilalizer,SendDocumentSerializer,GenerateOtpTokenSerializer,VerifyOtpSerializer
+from apps.documents.serializers import FieldsSerializer,DocumentGroupSerializer,DocumentsRecipientSerializer,RecipientSerializer,ResponseDocumentGroupSerializer,CreateDocumentFieldBulkSerializer,UpdateDocumentsFieldsSerilalizer,SendDocumentSerializer,GenerateOtpTokenSerializer,VerifyOtpSerializer,GetSignRecipientDocumentFields
 from django.db.models import Q
 from typing import List
 from rest_framework.response import Response
@@ -22,6 +22,7 @@ from django.contrib.auth import get_user_model
 from apps.documents.email import send_otp_to_mail
 from apps.documents.enum import DocumentValidity
 from datetime import date, timedelta
+from rest_framework.exceptions import NotFound, APIException
 
 User = get_user_model() 
 class DocumentFieldAPI(viewsets.ModelViewSet):
@@ -209,46 +210,60 @@ class VerifyOTPAPI(APIView):
 
 
 def recipients_response(document_group):
-     
-    if date.today() > document_group.document_group.expire_date:
-            return {"message": "The document group has expired.", "status":101}
-        
-        
-    # Check if the document group has expired based on days_to_complete
-    if document_group.days_to_complete:
-        creation_date = document_group.created_at.date()  # Assuming `created_at` is a DateTimeField
-        expiration_date = creation_date + timedelta(days=document_group.days_to_complete)
-        
-        if date.today() > expiration_date:
-            return {"message": "The document group has expired based on days to complete.", "status": 102}
-        else:
-            remaining_days = (expiration_date - date.today()).days
-            return {
-                "message": f"The document group is still valid. {remaining_days} days remaining.",
-                "status": 200
-            }
+    if not document_group.otp:
+        return {"message": "Otp required click on generate OTP .", "status":100}
     
     
+    if document_group.document_group.validity == DocumentValidity.DATE.name and date.today() > document_group.document_group.expire_date:
+        return {"message": "The document group has expired.", "status":101}
+    
+    if Recipient.objects.filter(document_group=document_group.document_group,is_recipient_sign=True):
+        return {"message": "You already sign That documenet", "status":102}
+    
+    return {"message": "Document is Vaild you can  sign", "status":200}
+        
+
+
 class RecipientSignGetProgressDocumentAPI(APIView):
     permission_classes = []
 
     def get(self, request, token, *args, **kwargs):
         try:
-            # Fetch the DocumentSharedLink object
-            document_group = DocumentSharedLink.objects.get(token=token)
-            authenticate_user = document_group.recipient.email
-        
-            if document_group.document_group.validity == DocumentValidity.DATE.name:
+            document_shared_link = DocumentSharedLink.objects.get(token=token)
+            document_group = document_shared_link.document_group
+            recipient = document_shared_link.recipient
             
-                response = recipients_response(document_group)
-                if response["status"] !=200:
-                    return Response(response)
-                    print("++++++++++++++++++",document_group.document_group.document_type)
+            response = recipients_response(document_shared_link)
+            if response["status"] != 200:
+                return Response(response, status=400)
+
+            recipient_obj = Recipient.objects.filter(document_group=document_group, id=recipient.id ).first()
+
+            if not recipient_obj:
+                raise NotFound(detail="Recipient not found in the specified document group.")
+
+          
+
+            serializer = GetSignRecipientDocumentFields(
+                recipient_obj, 
+                context={'document_group': document_group.id, 'recipient_id': recipient.id}
+            )
+
+            # Prepare response data
+            response_data = {
+                "status": 200,
+                "message": "Recipient and document group fetched successfully.",
+                "data": {
                 
-            
+                    "recipient": serializer.data,
+                },
+            }
+            return Response(response_data, status=200)
+
         except DocumentSharedLink.DoesNotExist:
-            # Handle the case where the document group doesn't exist
             raise NotFound(detail="Invalid token or document group not found.")
+        except Exception as e:
+            raise APIException(detail=f"An unexpected error occurred: {str(e)}")
 
         
     

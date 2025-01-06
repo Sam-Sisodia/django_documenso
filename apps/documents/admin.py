@@ -60,6 +60,7 @@ class Recipientadmin(admin.ModelAdmin):
                     "document_group",
                     "note",
                     "order",
+                    "is_recipient_sign",
                     "auth_type",
                     "created_by",]
     search_fields =["email"]

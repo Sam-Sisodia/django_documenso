@@ -137,10 +137,27 @@ class DocumentsRecipientSerializer(serializers.ModelSerializer):
     
     def validate(self, attrs):
         document_group_id = attrs.get("document_group_id")
+        recipients_data = attrs.get("recipients", [])
         instance = self.get_parent_instance(document_group_id)
 
         if not instance:
             raise ValidationError("Invaild document group  id ")
+        
+          # Extract and validate order fields
+        orders = [recipient.get('order') for recipient in recipients_data if 'order' in recipient]
+        if not orders:
+            raise serializers.ValidationError("Order field is required for each recipient.")
+        
+    
+        if len(orders) != len(set(orders)):
+            raise serializers.ValidationError("Order values must be unique.")
+        
+        
+        sorted_orders = sorted(orders)
+        if sorted_orders != list(range(1, len(sorted_orders) + 1)):
+            raise serializers.ValidationError("Order values must be sequential (e.g., 1, 2, 3, ...).")
+        
+
         
         return super().validate(attrs)
         
@@ -191,7 +208,7 @@ class CreateDocumentFieldBulkSerializer(serializers.Serializer):
         return document_group_instance
     
     
-    def check_post_data(self,recipient_id,filed_id):
+    def check_post_data(self,recipient_id,filed_id,document_group_id):
         recipient_instance = Recipient.objects.filter(id=recipient_id).first()
 
         if not recipient_instance:
@@ -211,7 +228,7 @@ class CreateDocumentFieldBulkSerializer(serializers.Serializer):
          
         document_fields = []
         for field_data in fields_data:
-            check_post_data = self.check_post_data( field_data['recipient']['id'],field_data['field']['id'])
+            check_post_data = self.check_post_data( field_data['recipient']['id'],field_data['field']['id'],document_group_id)
             if DocumentField.objects.filter(document_id=document_id,
                                             document_group = self.get_realted_instance(document_group_id,document_group_id),
                                             recipient_id=field_data['recipient']['id'],
@@ -265,8 +282,7 @@ class SendDocumentSerializer(serializers.Serializer):
         
         if not DocumentGroup.objects.filter(id=value).exists():
             raise serializers.ValidationError("The specified document group does not exist.")
-    
-        #  Ensure there are associated DocumentField and Recipient entries
+
         has_document_field = DocumentField.objects.filter(document_group=value)
         
         if not has_document_field:
@@ -295,30 +311,42 @@ class SendDocumentSerializer(serializers.Serializer):
         recipients = Recipient.objects.filter(document_group=document_group_id)
         mail_data = []
         for recipient in recipients:
+            #verify  recipient has must documnet fields
+            recipient_document_field = DocumentField.objects.filter(recipient=recipient.id,document_group=document_group_id)
+            if not recipient_document_field:
+                raise serializers.ValidationError({"message" :"Without add fields you not send the documnet Please add some  document  fields with recipient or remove  recipient from group","recipient":recipient.email ,"status":105})
+                
+            
             if recipient.auth_type == RecipientAuthType.EMAIL.value:  # Process only EMAIL auth_type
-                token = uuid.uuid4()
-                obj = DocumentSharedLink.objects.create(
-                    document_group_id=document_group_id,
-                    recipient=recipient,
-                    token=token,
-                    created_by=user,
-                    updated_by=user
-                )
-                mail_data.append({
-                    "id": obj.id,
-                    "email": recipient.email,
-                    "token": token,
-                    "note": recipient.note,
-                    "order": recipient.order,
-                     
-                })
-        
+                if DocumentSharedLink.objects.filter(recipient=recipient,document_group_id=document_group_id,is_send_to_recipient=True):
+                    pass
+                else:
+                    
+                    token = uuid.uuid4()
+                    obj = DocumentSharedLink.objects.create(
+                        document_group_id=document_group_id,
+                        recipient=recipient,
+                        token=token,
+                        created_by=user,
+                        updated_by=user
+                    )
+                    mail_data.append({
+                        "id": obj.id,
+                        "email": recipient.email,
+                        "token": token,
+                        "note": recipient.note,
+                        "order": recipient.order,
+                        
+                    })
+            
         if mail_data:
             document_instance = self.get_document_group_instance(document_group_id)
             if document_instance.signing_type ==SigningType.SEQUENTIAL:
                 sorted_data = sorted(mail_data, key=lambda x: x['order'])
                 mail_data = [sorted_data[0]]
-            email_sends = recipientsmail(self.context['request'],mail_data, subject, message)
+                
+            print(mail_data)
+            email_sends = recipientsmail(mail_data, subject, message)
             self.is_document_share(email_sends)
             document_instance.status = DocumentStatus.PENDING 
             document_instance.save()
@@ -345,7 +373,7 @@ class VerifyOtpSerializer(serializers.Serializer):
 class FilteredDocumentFieldSerializer(serializers.ModelSerializer):
     class Meta:
         model = DocumentField
-        fields = ['id', 'value', 'positionX', 'positionY', 'width', 'height', 'page_no','document','recipient']
+        fields = ['id', 'value', 'positionX', 'positionY', 'width', 'height', 'page_no','document','recipient','field']
 
 class GetRecipientDocumentSerializer(serializers.ModelSerializer):
     # documentfield_document = serializers.SerializerMethodField() 
@@ -353,6 +381,16 @@ class GetRecipientDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Document
         fields = ['id', 'title', 'file_data',]
+        
+        
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        
+        # Check if `updated_file_data` is not null, use it instead of `file_data`
+        if instance.updated_file_data:
+            representation['file_data'] = instance.updated_file_data
+        
+        return representation
         
     # def get_documentfield_document(self, obj):
     #     document_group = self.context.get('document_group')
@@ -410,25 +448,22 @@ class SignRecipientsFieldValueSerializer(serializers.Serializer):
         try: 
             shared_link = DocumentSharedLink.objects.get(token=data['token'],otp_verified=True,otp__isnull=False)
             data['recipient'] = shared_link.recipient
-            
             data['document_group'] = shared_link.document_group
-            
             if Recipient.objects.filter(id= data['recipient'].id,document_group=data['document_group'].id,is_recipient_sign=True):
                 raise serializers.ValidationError({"message": "You already Sign that document"})
                 
-        
         except DocumentSharedLink.DoesNotExist:
             raise serializers.ValidationError({"token": "Invalid token. OTP is not verified"})
         try:
             document_field = DocumentField.objects.get(
-                id=data['field_id'],
+                field_id=data['field_id'],
                 document_id=data['document_id'],
                 recipient=data['recipient'],
                 document_group = data['document_group']
             )
             data['document_field'] = document_field
         except DocumentField.DoesNotExist:
-            raise serializers.ValidationError({"field_id": "Invalid field ID or document ID."})
+            raise serializers.ValidationError({"field_id": "Invalid field ID or document ID.Field Id is not associated with  this document"})
 
         return data
 

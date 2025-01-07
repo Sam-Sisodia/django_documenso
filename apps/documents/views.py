@@ -18,11 +18,13 @@ import re
 from rest_framework.exceptions import NotFound
 from django.contrib.auth import get_user_model
 from apps.documents.email import send_otp_to_mail
-from apps.documents.enum import DocumentValidity
+from  apps.documents.enum import RecipientAuthType,SigningType,DocumentStatus 
 from datetime import date, timedelta
 from rest_framework.exceptions import NotFound, APIException
 from apps.documents.utils import recipients_response
+from apps.documents.email import recipientsmail
 from apps.utils.utils import update_pdf_add_values
+
 
 User = get_user_model() 
 class DocumentFieldAPI(viewsets.ModelViewSet):
@@ -255,10 +257,8 @@ class RecipientSignGetProgressDocumentAPI(APIView):
         
     
 
-
-
-
 class SignUpdateRecipientsFieldValueAPI(APIView):
+    
     """
     Updates the value of a field and checks if all fields assigned to the recipient are completed.
     """
@@ -268,26 +268,18 @@ class SignUpdateRecipientsFieldValueAPI(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # Extract validated data
-      
         data = serializer.validated_data
         document_field = data['document_field']
         recipient = data['recipient']
         document_group = data["document_group"]
-       
-        
-        
-
-        # Update the field value
+    
         document_field.value = data['value']
         document_field.save()
 
         incomplete_fields = recipient.documentfield_recipient.filter(value__isnull=True,document_group=document_group)
         if not incomplete_fields.exists():
             document_group = recipient.document_group
-            # print(document_group)
-            # document_group.status = "COMPLETED"  
-            # document_group.save()
+            
             completed_fields = recipient.documentfield_recipient.filter(value__isnull=False, document_group=document_group)
             completed_field_details = [
                 {
@@ -315,10 +307,12 @@ class SignUpdateRecipientsFieldValueAPI(APIView):
             if "data" in updated_document:
                 file_obj.updated_file_data = updated_document["data"]
                 file_obj.save()
+                
             
-            
-            
-            
+            if document_group.signing_type ==SigningType.SEQUENTIAL:
+                send_mail_status = self.send_mail_to_next_recipient(document_group)
+                
+                
             
             return Response({
                 "status": "success",
@@ -333,12 +327,39 @@ class SignUpdateRecipientsFieldValueAPI(APIView):
         
         
         
+    def send_mail_to_next_recipient(self,document_group):
+       
+        next_recipient = document_group.group_recipients.filter(is_recipient_sign=False ).order_by('order').first()
+        subject= document_group.subject
+        message = document_group.message
+        if not next_recipient:
+            return {"message":"All recipients have signed the document." ,"status":110}
+    
+        document_link = next_recipient.recipient_links.get(document_group=document_group,recipient=next_recipient.id)
+        mail_data = [{"id":next_recipient.id,"email": next_recipient.email,'token':document_link.token,'note':next_recipient.note}]
+        email_sends = recipientsmail(mail_data, subject, message)
+        self.is_document_share(email_sends)
+        return {"message":"Email send sucessfully ." ,"status":111}
+    
+    
+    def is_document_share(self,ids):
+        obj = DocumentSharedLink.objects.filter(recipient_id__in = ids)
+        for id in obj:
+            id.is_send_to_recipient = True
+            print("++++++++++++++++++++++++=")
+            id.save()
+        
+        
+        
+        
+        
+        
+        
+        
         
     
 
-        
-        
-        
+    
         
         
 

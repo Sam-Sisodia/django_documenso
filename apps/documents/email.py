@@ -9,7 +9,7 @@ smtp_user = os.getenv("SMTP_USER")
 smtp_password = os.getenv("EMAIL_PASSWORD")
     
 
-def recipientsmail(request,document_links, subject, message):
+def recipientsmail(document_links, subject, message):
     results = []
     base_url = f"{os.getenv('FE_SIGN_URL')}"
     for link in document_links:

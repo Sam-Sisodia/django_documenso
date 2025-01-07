@@ -301,7 +301,8 @@ class SignUpdateRecipientsFieldValueAPI(APIView):
             
             
             file_obj =  Document.objects.get(id=doc_id)
-            pdf_bytes = base64.b64decode(file_obj.file_data) 
+            bytes_file_data = file_obj.updated_file_data if file_obj.updated_file_data else file_obj.file_data
+            pdf_bytes = base64.b64decode(bytes_file_data) 
             
             updated_document = update_pdf_add_values(pdf_bytes,completed_field_details)
             if "data" in updated_document:
@@ -311,6 +312,7 @@ class SignUpdateRecipientsFieldValueAPI(APIView):
             
             if document_group.signing_type ==SigningType.SEQUENTIAL:
                 send_mail_status = self.send_mail_to_next_recipient(document_group)
+                print(send_mail_status)
                 
                 
             
@@ -346,7 +348,6 @@ class SignUpdateRecipientsFieldValueAPI(APIView):
         obj = DocumentSharedLink.objects.filter(recipient_id__in = ids)
         for id in obj:
             id.is_send_to_recipient = True
-            print("++++++++++++++++++++++++=")
             id.save()
         
         

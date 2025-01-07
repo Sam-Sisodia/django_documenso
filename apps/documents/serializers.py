@@ -436,7 +436,7 @@ class GetSignRecipientDocumentFields(serializers.ModelSerializer):
 #################################################################################################################################
 
 class SignRecipientsFieldValueSerializer(serializers.Serializer):
-    value = serializers.CharField(required=True)
+    value = serializers.CharField(required=False,allow_blank=True)
     width = serializers.CharField(required=False, allow_blank=True)
     height = serializers.CharField(required=False, allow_blank=True)
     token = serializers.CharField(required=True)

@@ -276,7 +276,11 @@ class SignUpdateRecipientsFieldValueAPI(APIView):
         document_field.value = data['value']
         document_field.save()
 
-        incomplete_fields = recipient.documentfield_recipient.filter(value__isnull=True,document_group=document_group)
+        incomplete_fields = recipient.documentfield_recipient.filter(
+            Q(value__isnull=True) | Q(value=""),  
+            recipient=recipient.id,
+            document_group=document_group
+        )
         
         if not incomplete_fields.exists():
             document_group = recipient.document_group
@@ -324,9 +328,10 @@ class SignUpdateRecipientsFieldValueAPI(APIView):
 
         return Response({
             "status": "incomplete",
-            "message": "Fileds update Sucessfully , Some fields are still incomplete.",
+            "message": "Field update sucessfully , Some fields are still incomplete.",
             "incomplete_fields": [{"field_id": f.id, "field_name": f.field.name} for f in incomplete_fields]
         }, status=status.HTTP_200_OK)
+        
         
         
         

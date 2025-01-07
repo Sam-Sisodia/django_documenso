@@ -197,18 +197,27 @@ class DocumentFieldSerializer(serializers.ModelSerializer):
     field_id = serializers.IntegerField(source='field.id')
     class Meta:
         model = DocumentField
-        fields = ['recipient', 'value', 'positionX', 'positionY', 'width', 'height', 'field_id', 'page_no']
+        fields = ['recipient', 'value', 'positionX', 'positionY', 'width', 'height', 'field_id', 'page_no',"document"]
 class CreateDocumentFieldBulkSerializer(serializers.Serializer):
-    document_id = serializers.IntegerField()
+    # document_id = serializers.IntegerField()
     document_group_id = serializers.IntegerField()
     fields = DocumentFieldSerializer(many=True)
     
-    def get_realted_instance(self,document_group_id,document_id):
+    
+    
+    
+    def get_document_group(self,document_group_id):
         document_group_instance = DocumentGroup.objects.filter(id=document_group_id).first()
         return document_group_instance
     
+    def get_group_document(self,document_group_instace, document_id):
+        if not document_group_instace.documents.filter(id=document_id.id).exists():
+            raise serializers.ValidationError({"message" :f"Invaild document id Document with ID {document_id.id} is not related to the specified group", "status":120})
+
+        return document_id
+
     
-    def check_post_data(self,recipient_id,filed_id,document_group_id):
+    def check_post_data(self,recipient_id,filed_id,):
         recipient_instance = Recipient.objects.filter(id=recipient_id).first()
 
         if not recipient_instance:
@@ -222,25 +231,27 @@ class CreateDocumentFieldBulkSerializer(serializers.Serializer):
    
     def create(self, validated_data):
         document_group_id = validated_data['document_group_id']
-        document_id = validated_data['document_id']
+        
         fields_data = validated_data['fields']
         user = self.context['request'].user 
+        document_group_instance = self.get_document_group(document_group_id)
          
         document_fields = []
         for field_data in fields_data:
-            check_post_data = self.check_post_data( field_data['recipient']['id'],field_data['field']['id'],document_group_id)
-            if DocumentField.objects.filter(document_id=document_id,
-                                            document_group = self.get_realted_instance(document_group_id,document_group_id),
+        
+            check_post_data = self.check_post_data( field_data['recipient']['id'],field_data['field']['id'])
+            if DocumentField.objects.filter(document=self.get_group_document(document_group_instance,field_data["document"]),
+                                            document_group =  document_group_instance        ,
                                             recipient_id=field_data['recipient']['id'],
                                             field_id=field_data['field']['id'],
                                             positionX=field_data['positionX'],
                                             positionY=field_data['positionY']).exists():
                 
-                raise ValidationError("Recipient with this document and field id is already exits")
+                raise ValidationError({"message":"Recipient with this document and field id is already exits remove the existing recipient from the payload"})
             
             document_field = DocumentField(
-                document_group = self.get_realted_instance(document_group_id,document_group_id),
-                document_id=document_id,
+                document_group = document_group_instance,
+                document=self.get_group_document(document_group_instance,field_data["document"] ),
                 recipient_id=field_data['recipient']['id'],
                 field_id=field_data['field']['id'],
                 value=field_data['value'],

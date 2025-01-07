@@ -15,11 +15,8 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:3001',
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-
     "https://localhost:3020",
     "http://localhost:3020",
-    "https://998c-2405-201-5003-2178-aee6-a616-8f9e-f422.ngrok-free.app",
- 
     
     
 
@@ -36,7 +33,6 @@ CORS_ALLOW_HEADERS = [
     "user-agent",
     "x-csrftoken",
     "x-requested-with",
-    # "access-control-allow-origin",
     "Authorization",
     
 ]

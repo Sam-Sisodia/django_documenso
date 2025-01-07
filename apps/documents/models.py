@@ -146,9 +146,9 @@ class DocumentSharedLink(TimeStampModel):
         return False
         
         
-    def is_otp_valid(self, otp):
-        """Check if OTP is valid and not expired."""
-        return self.otp == otp and self.otp_expiry > now()
+    # def is_otp_valid(self, otp):
+    #     """Check if OTP is valid and not expired."""
+    #     return self.otp == otp and self.otp_expiry > now()
 
     def __str__(self):
         return f"Shared Link: {self.token}"

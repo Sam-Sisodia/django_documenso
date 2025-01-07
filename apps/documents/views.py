@@ -277,6 +277,7 @@ class SignUpdateRecipientsFieldValueAPI(APIView):
         document_field.save()
 
         incomplete_fields = recipient.documentfield_recipient.filter(value__isnull=True,document_group=document_group)
+        
         if not incomplete_fields.exists():
             document_group = recipient.document_group
             
@@ -335,6 +336,8 @@ class SignUpdateRecipientsFieldValueAPI(APIView):
         subject= document_group.subject
         message = document_group.message
         if not next_recipient:
+            document_group.status = DocumentStatus.COMPLETED.name
+            document_group.save()
             return {"message":"All recipients have signed the document." ,"status":110}
     
         document_link = next_recipient.recipient_links.get(document_group=document_group,recipient=next_recipient.id)

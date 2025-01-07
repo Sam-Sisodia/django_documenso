@@ -76,13 +76,13 @@ def update_pdf_add_values(pdf_bytes, completed_field_details):
         
     
   
-    # if os.getenv("DOWNLOAD_DOC") == "Yes":
+   
     #     output_path = os.path.join(os.getcwd(), 'sajal_signed.pdf')
     #     with open(output_path, "wb") as output_file:
     #         pdf_writer.write(output_file)
     #     print("Document updated and saved successfully.")
     #     return {"message": "Document updated successfully", "file_path": output_path}
-    # else:
+   
     output_stream = io.BytesIO()
     pdf_writer.write(output_stream)
     output_stream.seek(0)

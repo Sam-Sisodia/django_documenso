@@ -74,6 +74,7 @@ class DocumentFieldadmin(admin.ModelAdmin):
                     "document",
                     "field",
                     "recipient",
+                    "document_group",
                     "value",
                     "positionX",
                     "positionY",

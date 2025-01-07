@@ -60,8 +60,22 @@ def update_pdf_add_values(pdf_bytes, completed_field_details):
                     image_reader = ImageReader(image_stream)
                     c.drawImage(image_reader, positionX, positionY, width, height)
                 else:
-                    c.setFont("Helvetica", 20)
-                    c.drawString(int(positionX), int(positionY), value_text)
+                    # c.setFont("Helvetica", 20)
+                    # c.drawString(int(positionX), int(positionY), value_text)
+                    
+                    
+                    font_size = int(height * 0.8)  # Scale font size based on height
+                    c.setFont("Helvetica", font_size)
+
+                    # Truncate text to fit within the width
+                    max_chars = int(width / (font_size * 0.6))  # Estimate max characters based on width
+                    truncated_text = value_text[:max_chars]
+
+                    # Center the text vertically within the height
+                    adjusted_positionY = positionY + (height - font_size) / 2
+
+                    # Draw the text
+                    c.drawString(positionX, adjusted_positionY, truncated_text)
 
             c.save()
             packet.seek(0)

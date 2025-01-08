@@ -252,6 +252,8 @@ class RecipientSignGetProgressDocumentAPI(APIView):
     
 
 class SignUpdateRecipientsFieldValueAPI(APIView):
+    authentication_classes = []
+    permission_classes = []
     """
     Updates the value of a field and checks if all fields assigned to the recipient are completed.
     """
@@ -270,7 +272,6 @@ class SignUpdateRecipientsFieldValueAPI(APIView):
             return Response(doc_status)
         self.updatedocumnetfieldsdata(document_field,data)
         
-    
     
 
         incomplete_fields = recipient.documentfield_recipient.filter(
@@ -369,22 +370,10 @@ class SignUpdateRecipientsFieldValueAPI(APIView):
         obj = DocumentGroup.objects.filter(status=DocumentStatus.COMPLETED.name).first()
         if obj:
             return {"message":"Doument is completed you can not perform any action now",'status':150}
+        return {"message" : "Document signing  in progress" ,"status":151 }
         
         
             
-        
-        
-        
-        
-        
-        
-        
-        
-        
-    
-
-    
-        
         
 
 class RecipientUpdatedDocumentAPI(APIView):

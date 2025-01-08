@@ -266,9 +266,12 @@ class SignUpdateRecipientsFieldValueAPI(APIView):
         document_group = data["document_group"]
         doc_status = self.check_document_status(document_group)
         
+        if doc_status["status"]==150:
+            return Response(doc_status)
+        self.updatedocumnetfieldsdata(document_field,data)
+        
     
-        document_field.value = data['value']
-        document_field.save()
+    
 
         incomplete_fields = recipient.documentfield_recipient.filter(
             Q(value__isnull=True) | Q(value=""),  
@@ -328,9 +331,19 @@ class SignUpdateRecipientsFieldValueAPI(APIView):
         
         
         
+    def updatedocumnetfieldsdata(self,document_field,data):
+        document_field.value = data['value']
+        # Update width and height if provided
+        if 'width' in data and data['width']:
+            document_field.width = data['width']
+
+        if 'height' in data and data['height']:
+            document_field.height = data['height']
         
+        document_field.save()
+        
+ 
     def send_mail_to_next_recipient(self,document_group):
-       
         next_recipient = document_group.group_recipients.filter(is_recipient_sign=False ).order_by('order').first()
         subject= document_group.subject
         message = document_group.message
@@ -356,6 +369,7 @@ class SignUpdateRecipientsFieldValueAPI(APIView):
         obj = DocumentGroup.objects.filter(status=DocumentStatus.COMPLETED.name).first()
         if obj:
             return {"message":"Doument is completed you can not perform any action now",'status':150}
+        
         
             
         

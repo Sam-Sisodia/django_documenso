@@ -108,27 +108,27 @@ class DocumentFieldCreateAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     
-    def put(self, request, *args, **kwargs):
-        field_id = request.query_params.get('field_id')
-        document_id = request.query_params.get('document_id')  #
-        recipient_id = request.query_params.get('recipient_id') 
-        document_group = request.query_params.get('document_group_id')
-        try:
-            document_field = DocumentField.objects.get(id=field_id, document=document_id, recipient=recipient_id,document_group=document_group)
-        except DocumentField.DoesNotExist:
-            return Response({"message": "Document field not found."}, status=status.HTTP_404_NOT_FOUND)
+    # def put(self, request, *args, **kwargs):
+    #     field_id = request.query_params.get('field_id')
+    #     document_id = request.query_params.get('document_id')  #
+    #     recipient_id = request.query_params.get('recipient_id') 
+    #     document_group = request.query_params.get('document_group_id')
+    #     try:
+    #         document_field = DocumentField.objects.get(id=field_id, document=document_id, recipient=recipient_id,document_group=document_group)
+    #     except DocumentField.DoesNotExist:
+    #         return Response({"message": "Document field not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = UpdateDocumentsFieldsSerilalizer(document_field, data=request.data, context={'request': request})
+    #     serializer = UpdateDocumentsFieldsSerilalizer(document_field, data=request.data, context={'request': request})
     
-        if serializer.is_valid():
-            try:
-                serializer.save()
-                return Response({"message": "Document field updated successfully"}, status=status.HTTP_200_OK)
-            except Exception as e:
+    #     if serializer.is_valid():
+    #         try:
+    #             serializer.save()
+    #             return Response({"message": "Document field updated successfully"}, status=status.HTTP_200_OK)
+    #         except Exception as e:
                
-                return Response({"message": "An error occurred while updating the document field."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    #             return Response({"message": "An error occurred while updating the document field."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    #     else:
+    #         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
     def delete(self, request, *args, **kwargs):
         document_group = request.query_params.get('document_group_id')
@@ -210,10 +210,6 @@ class VerifyOTPAPI(APIView):
 
 
 
-
-
-    
-
 class RecipientSignGetProgressDocumentAPI(APIView):
     permission_classes = []
 
@@ -236,7 +232,6 @@ class RecipientSignGetProgressDocumentAPI(APIView):
                 recipient_obj, 
                 context={'document_group': document_group.id, 'recipient_id': recipient.id}
             )
-
             # Prepare response data
             response_data = {
                 "status": 200,
@@ -257,11 +252,9 @@ class RecipientSignGetProgressDocumentAPI(APIView):
     
 
 class SignUpdateRecipientsFieldValueAPI(APIView):
-    
     """
     Updates the value of a field and checks if all fields assigned to the recipient are completed.
     """
-
     def post(self, request):
         serializer = SignRecipientsFieldValueSerializer(data=request.data)
         if not serializer.is_valid():

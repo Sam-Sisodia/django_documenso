@@ -330,21 +330,17 @@ class SendDocumentSerializer(serializers.Serializer):
     document_group_id = serializers.IntegerField(required=True)
     subject = serializers.CharField(max_length=255, required=False)
     message = serializers.CharField(max_length=1000, required=False)
-
     def validate_document_group_id(self, value):
         
         if not DocumentGroup.objects.filter(id=value).exists():
             raise serializers.ValidationError("The specified document group does not exist.")
-
         has_document_field = DocumentField.objects.filter(document_group=value)
-        
         if not has_document_field:
             raise serializers.ValidationError("No related document fields found for this document group. Add fields")
         
         return value
         
-     
-    
+
     def get_document_group_instance(self,obj):
         instance = DocumentGroup.objects.get(id = obj)
         return instance
@@ -369,7 +365,6 @@ class SendDocumentSerializer(serializers.Serializer):
             if not recipient_document_field:
                 raise serializers.ValidationError({"message" :"Without add fields you not send the documnet Please add some  document  fields with recipient or remove  recipient from group","recipient":recipient.email ,"status":105})
                 
-            
             if recipient.auth_type == RecipientAuthType.EMAIL.value:  # Process only EMAIL auth_type
                 if DocumentSharedLink.objects.filter(recipient=recipient,document_group_id=document_group_id,is_send_to_recipient=True):
                     pass
@@ -477,7 +472,6 @@ class GetRecipientGroupData(serializers.ModelSerializer):
 class GetSignRecipientDocumentFields(serializers.ModelSerializer):
     document_group = GetRecipientGroupData(read_only=True)
     documentfield_recipient = FilteredDocumentFieldSerializer(many=True)
-
     class Meta:
         model = Recipient
         fields = [

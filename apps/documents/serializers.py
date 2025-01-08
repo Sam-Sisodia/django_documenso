@@ -195,9 +195,10 @@ class DocumentsRecipientSerializer(serializers.ModelSerializer):
 class DocumentFieldSerializer(serializers.ModelSerializer):
     recipient = serializers.IntegerField(source='recipient.id')
     field_id = serializers.IntegerField(source='field.id')
+    id = serializers.IntegerField(required=False)
     class Meta:
         model = DocumentField
-        fields = ['recipient', 'value', 'positionX', 'positionY', 'width', 'height', 'field_id', 'page_no',"document"]
+        fields = ['id','recipient', 'value', 'positionX', 'positionY', 'width', 'height', 'field_id', 'page_no',"document"]
 class CreateDocumentFieldBulkSerializer(serializers.Serializer):
     # document_id = serializers.IntegerField()
     document_group_id = serializers.IntegerField()
@@ -227,45 +228,86 @@ class CreateDocumentFieldBulkSerializer(serializers.Serializer):
         if not filed_instance:
             raise ValidationError("Invaild Field Id")
         
-
-   
+        
+    def check_already_exists(self,document_group_instance,field_data):
+        if DocumentField.objects.filter(document=self.get_group_document(document_group_instance, field_data["document"]),
+                    document_group=document_group_instance,
+                    recipient_id=field_data['recipient']['id'],
+                    field_id=field_data['field']['id'],
+                    positionX=field_data['positionX'],
+                    positionY=field_data['positionY'],
+                    width=field_data.get('width'),
+                    height=field_data.get('height'),
+                    page_no=field_data.get('page_no'),
+                ).exists():
+                return True
+        return False
+        
+        
     def create(self, validated_data):
         document_group_id = validated_data['document_group_id']
-        
         fields_data = validated_data['fields']
-        user = self.context['request'].user 
+        user = self.context['request'].user
         document_group_instance = self.get_document_group(document_group_id)
-         
+        
         document_fields = []
         for field_data in fields_data:
-        
-            check_post_data = self.check_post_data( field_data['recipient']['id'],field_data['field']['id'])
-            if DocumentField.objects.filter(document=self.get_group_document(document_group_instance,field_data["document"]),
-                                            document_group =  document_group_instance        ,
-                                            recipient_id=field_data['recipient']['id'],
-                                            field_id=field_data['field']['id'],
-                                            positionX=field_data['positionX'],
-                                            positionY=field_data['positionY']).exists():
+            if 'id' in field_data:
+                # Update logic
+                document_field = DocumentField.objects.filter(id=field_data['id'],recipient_id=field_data['recipient']['id'],
+                                                              document_group=document_group_instance,
+                                                            document=self.get_group_document( document_group_instance, field_data["document"] )
+                                                              ).first()
+                if not document_field:
+                    raise serializers.ValidationError({"message":"Invaild Field Id"})
                 
-                raise ValidationError({"message":"Recipient with this document and field id is already exits remove the existing recipient from the payload"})
-            
-            document_field = DocumentField(
-                document_group = document_group_instance,
-                document=self.get_group_document(document_group_instance,field_data["document"] ),
-                recipient_id=field_data['recipient']['id'],
-                field_id=field_data['field']['id'],
-                value=field_data['value'],
-                positionX=field_data['positionX'],
-                positionY=field_data['positionY'],
-                width=field_data['width'],
-                height=field_data['height'],
-                page_no=field_data['page_no'],
+                if document_field:
+                    document_field.recipient_id = field_data.get('recipient', {}).get('id')
+                    document_field.field_id = field_data.get('field', {}).get('id')
+                    document_field.value = field_data.get('value')
+                    document_field.positionX = field_data.get('positionX')
+                    document_field.positionY = field_data.get('positionY')
+                    document_field.width = field_data.get('width')
+                    document_field.height = field_data.get('height')
+                    document_field.page_no = field_data.get('page_no')
+                    document_field.document = self.get_group_document(
+                        document_group_instance, field_data.get("document")
+                    )
+                    document_field.updated_by = user
+                    document_field.save()
+                    
+            else:
+                # Creation logic
+                exiting_data = self.check_already_exists(document_group_instance,field_data)
+                if exiting_data:
+                    raise ValidationError({
+                        "message": "Recipient with this document and field id already exists. Remove the existing recipient from the payload."
+                    })
+    
+
+                document_field = DocumentField( document_group=document_group_instance,
+                document=self.get_group_document( document_group_instance, field_data.get("document")),
+                recipient_id=field_data.get('recipient', {}).get('id'),
+                field_id=field_data.get('field', {}).get('id'),
+                value=field_data.get('value'),
+                positionX=field_data.get('positionX'),
+                positionY=field_data.get('positionY'),
+                width=field_data.get('width'),
+                height=field_data.get('height'),
+                page_no=field_data.get('page_no'),
                 created_by=user,
                 updated_by=user,
             )
-            document_fields.append(document_field)
+                document_fields.append(document_field)
 
-        return DocumentField.objects.bulk_create(document_fields)
+        # Bulk create only for new entries
+        if document_fields:
+            DocumentField.objects.bulk_create(document_fields)
+
+        return {"message": "Fields processed successfully."}
+
+        
+
 
 class UpdateDocumentsFieldsSerilalizer(serializers.ModelSerializer):
     class Meta:

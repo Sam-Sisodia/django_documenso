@@ -178,7 +178,6 @@ class GenerateOTPAPI(APIView):
             token = serializer.validated_data.get('token')
             try:
                 document_group = DocumentSharedLink.objects.get(token=token)
-                print(document_group,"ksjkdjkdjdkjdskjdskjdsjdsjdjk")
                 email = document_group.recipient.email
                 otp = document_group.generate_otp()
                 send_otp_to_mail(email,otp)

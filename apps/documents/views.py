@@ -264,6 +264,8 @@ class SignUpdateRecipientsFieldValueAPI(APIView):
         document_field = data['document_field']
         recipient = data['recipient']
         document_group = data["document_group"]
+        doc_status = self.check_document_status(document_group)
+        
     
         document_field.value = data['value']
         document_field.save()
@@ -349,6 +351,13 @@ class SignUpdateRecipientsFieldValueAPI(APIView):
         for id in obj:
             id.is_send_to_recipient = True
             id.save()
+            
+    def check_document_status(self,document_group):
+        obj = DocumentGroup.objects.filter(status=DocumentStatus.COMPLETED.name).first()
+        if obj:
+            return {"message":"Doument is completed you can not perform any action now",'status':150}
+        
+            
         
         
         

@@ -483,6 +483,7 @@ class GetSignRecipientDocumentFields(serializers.ModelSerializer):
 #################################################################################################################################
 
 class SignRecipientsFieldValueSerializer(serializers.Serializer):
+    id = serializers.IntegerField(required=True,allow_blank=True)
     value = serializers.CharField(required=False,allow_blank=True)
     width = serializers.CharField(required=False, allow_blank=True)
     height = serializers.CharField(required=False, allow_blank=True)
@@ -506,7 +507,8 @@ class SignRecipientsFieldValueSerializer(serializers.Serializer):
                 field_id=data['field_id'],
                 document_id=data['document_id'],
                 recipient=data['recipient'],
-                document_group = data['document_group']
+                document_group = data['document_group'],
+                id = data["id"]
             )
             data['document_field'] = document_field
         except DocumentField.DoesNotExist:
